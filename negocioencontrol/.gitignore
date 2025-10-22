@@ -1,0 +1,50 @@
+# -------------------------------
+# Archivos de configuración y secretos
+# -------------------------------
+negocios/modulos/gcs-key.json
+*.env
+config.ini
+*.key
+*.pem
+
+# -------------------------------
+# Archivos temporales y logs
+# -------------------------------
+*.log
+*.tmp
+*.bak
+*.swp
+*.cache
+*.DS_Store
+Thumbs.db
+
+# -------------------------------
+# Dependencias locales
+# -------------------------------
+/vendor/
+/node_modules/
+
+# -------------------------------
+# Archivos de IDE / editores
+# -------------------------------
+.vscode/
+.idea/
+*.iml
+*.code-workspace
+
+# -------------------------------
+# Imágenes temporales / exportadas
+# -------------------------------
+*.tmp.jpg
+*.tmp.png
+*.backup.jpg
+*.backup.png
+
+# -------------------------------
+# Otros archivos que no se deben subir
+# -------------------------------
+*.zip
+*.tar.gz
+*.rar
+*.exe
+*.dll

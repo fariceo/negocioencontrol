@@ -1,0 +1,12 @@
+negocioencontrol/
+├── core/             # Núcleo de la app (conexiones, configuración, funciones comunes)
+├── negocios/         # Lógica y scripts de creación de negocios y usuarios
+├── usuarios/         # CRUD de usuarios, login, roles
+├── productos/        # CRUD de productos y categorías
+├── ventas/           # Gestión de ventas, pedidos y reportes
+├── clientes/         # Gestión de clientes y contactos
+├── ajustes/          # Configuración de la app (ajustes de negocio)
+├── js/               # Archivos JS para la interfaz
+├── css/              # Estilos
+├── index.php         # Página principal
+└── setup/            # Scripts iniciales, instalación y creación de BD

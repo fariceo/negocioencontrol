@@ -1,0 +1,88 @@
+<?php
+session_start();
+include $_SERVER['DOCUMENT_ROOT']."/negocioencontrol/core/conexion.php";
+
+if (!isset($_SESSION['nombre_bd_negocio'])) {
+    header("Location: ../usuarios/login.php");
+    exit;
+}
+
+// Conexión a la base de datos del negocio
+$db = new Conexion();
+$conexion = $db->negocio($_SESSION['nombre_bd_negocio']);
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" name="viewport" content="width=device-width">
+<title>Panel de Control</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+body {font-family: Arial, sans-serif; margin:0; padding:0;}
+#contenido {padding:20px;}
+#menuLinks {list-style:none; display:flex; gap:10px; padding:0; margin:0; background:#2c3e50; flex-wrap: wrap;}
+#menuLinks li a {color:white; text-decoration:none; padding:8px 12px; display:block; background:#34495e; border-radius:4px;}
+#menuLinks li a:hover {background:#1abc9c;}
+</style>
+</head>
+<body>
+
+<?php include "layout/marquesina.php"; ?>
+<?php include "layout/menu.php"; ?>
+
+<div id="contenido" style='height:450px;          
+    overflow-y:auto; '>
+    <h2 style="text-align:center;">Bienvenido al panel</h2>
+    <p style="text-align:center;">Seleccione un módulo del menú para comenzar.</p>
+</div>
+
+<form action="/negocioencontrol/usuarios/logout.php" method="post" 
+      style="position:fixed; bottom:20px; left:20px;">
+    <button type="submit" 
+            style="padding:8px 12px; background:#dc3545; color:#fff; border:none; border-radius:5px; cursor:pointer;">
+        Cerrar sesión
+    </button>
+</form>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const menuLinks = document.querySelectorAll('#menuLinks a');
+
+    function cargarModulo(ruta) {
+        fetch(ruta)
+        .then(res => res.text())
+        .then(html => {
+            const contenido = document.getElementById('contenido');
+            contenido.innerHTML = html;
+             // Reiniciar scroll al inicio
+            contenido.scrollTop = 0;
+
+            // Ejecutar scripts internos del módulo
+            const scripts = contenido.querySelectorAll('script');
+            scripts.forEach(s => {
+                const newScript = document.createElement('script');
+                if(s.src) newScript.src = s.src;
+                else newScript.textContent = `(function(){ ${s.textContent} })();`; // encapsula en función
+                document.body.appendChild(newScript);
+                s.remove();
+            });
+        })
+        .catch(err => {
+            document.getElementById('contenido').innerHTML =
+                "<p style='color:red; text-align:center;'>No se pudo cargar el módulo: " + err.message + "</p>";
+            console.error(err);
+        });
+    }
+
+    menuLinks.forEach(a => {
+        a.addEventListener('click', function(e) {
+            e.preventDefault();
+            const ruta = this.dataset.ruta;
+            cargarModulo(ruta);
+        });
+    });
+});
+</script>
+
+</body>
+</html>

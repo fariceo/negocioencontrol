@@ -1,4 +1,4 @@
-(inventario_bodega.php) <?php
+<?php
 session_start();
 include $_SERVER['DOCUMENT_ROOT'].'/negocioencontrol/core/conexion.php';
 
@@ -12,7 +12,14 @@ $negocio = $_SESSION['nombre_bd_negocio'];
 $defaultImage = "/negocioencontrol/negocios/modulos/assets/default.png";
 
 $stmt = $conexion->prepare("
-    SELECT b.id, b.producto, b.descripcion, b.cantidad, b.precio, COALESCE(p.imagen,'') AS img
+    SELECT 
+        b.id, 
+        b.producto, 
+        b.descripcion, 
+        b.cantidad, 
+        b.precio, 
+        b.categoria,
+        COALESCE(p.imagen,'') AS img
     FROM bodega b 
     LEFT JOIN productos p ON b.producto = p.producto
     WHERE b.negocio = ?
@@ -93,7 +100,15 @@ $query = $stmt->get_result();
 </tr>
 <tr class="action-row" data-id="<?= $p['id'] ?>">
     <td colspan="6">
-        <button class="btn btn-edit" data-id="<?= $p['id'] ?>" data-producto="<?= htmlspecialchars($p['producto']) ?>" data-descripcion="<?= htmlspecialchars($p['descripcion']) ?>" data-cantidad="<?= $p['cantidad'] ?>" data-precio="<?= $p['precio'] ?>" data-categoria="<?= htmlspecialchars($p['categoria'] ?? '') ?>">✏ Editar</button>
+        <button class="btn btn-edit"
+            data-id="<?= $p['id'] ?>"
+            data-producto="<?= htmlspecialchars($p['producto']) ?>"
+            data-descripcion="<?= htmlspecialchars($p['descripcion']) ?>"
+            data-cantidad="<?= $p['cantidad'] ?>"
+            data-precio="<?= $p['precio'] ?>"
+            data-categoria="<?= htmlspecialchars($p['categoria']) ?>"
+        >✏ Editar</button>
+
         <button class="btn btn-delete" style="background:#c0392b;" data-id="<?= $p['id'] ?>">🗑 Borrar</button>
     </td>
 </tr>
@@ -115,13 +130,17 @@ $query = $stmt->get_result();
     function showForm(){ modal.style.display='flex'; }
     function closeForm(){ modal.style.display='none'; form.reset(); }
 
-    // NUEVO
-    document.getElementById('btnNuevo').addEventListener('click',()=>{ showForm(); form.reset(); wrap.querySelector("#idProducto_bodega").value=0; });
+    // NUEVO PRODUCTO
+    document.getElementById('btnNuevo').addEventListener('click',()=>{
+        form.reset();
+        wrap.querySelector("#idProducto_bodega").value=0;
+        showForm();
+    });
 
-    // CERRAR
+    // CERRAR MODAL
     document.getElementById('btnCerrar').addEventListener('click',()=>closeForm());
 
-    // CLICK IMAGEN
+    // VER IMAGEN
     tbody.addEventListener('click', e=>{
         if(e.target.classList.contains('img-card')){
             img_modal.src = e.target.src;
@@ -129,28 +148,38 @@ $query = $stmt->get_result();
         }
     });
 
-    // EDITAR y ELIMINAR
+    // EDITAR / ELIMINAR
     tbody.addEventListener('click', e=>{
-        if(e.target.classList.contains('btn-edit')){
-            const btn = e.target;
+        const target = e.target;
+
+        // EDITAR
+        if(target.classList.contains('btn-edit')){
             showForm();
-            wrap.querySelector("#idProducto_bodega").value = btn.dataset.id;
-            wrap.querySelector("#producto_bodega").value = btn.dataset.producto;
-            wrap.querySelector("#descripcion_bodega").value = btn.dataset.descripcion;
-            wrap.querySelector("#cantidad_bodega").value = btn.dataset.cantidad;
-            wrap.querySelector("#precio_bodega").value = btn.dataset.precio;
-            wrap.querySelector("#categoria_bodega").value = btn.dataset.categoria;
+            wrap.querySelector("#idProducto_bodega").value = target.dataset.id;
+            wrap.querySelector("#producto_bodega").value = target.dataset.producto;
+            wrap.querySelector("#descripcion_bodega").value = target.dataset.descripcion;
+            wrap.querySelector("#cantidad_bodega").value = target.dataset.cantidad;
+            wrap.querySelector("#precio_bodega").value = target.dataset.precio;
+            wrap.querySelector("#categoria_bodega").value = target.dataset.categoria;
         }
-        if(e.target.classList.contains('btn-delete')){
-            const id = e.target.dataset.id;
+
+        // ELIMINAR
+        if(target.classList.contains('btn-delete')){
+            const id = target.dataset.id;
             if(confirm('¿Eliminar este registro?')){
                 fetch("/negocioencontrol/negocios/modulos/bodega_accion.php",{
-                    method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:`eliminar=1&id=${id}`
-                }).then(r=>r.json()).then(resp=>{
+                    method:'POST',
+                    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+                    body:`eliminar=1&id=${id}`
+                })
+                .then(r=>r.json())
+                .then(resp=>{
                     if(resp.ok){
                         tbody.querySelector(`tr[data-id='${id}']`).remove();
                         tbody.querySelector(`tr.action-row[data-id='${id}']`).remove();
-                    }else alert(resp.msg);
+                    } else {
+                        alert(resp.msg);
+                    }
                 });
             }
         }
@@ -158,32 +187,106 @@ $query = $stmt->get_result();
 
     // BUSCADOR
     searchInput.addEventListener('input', e=>{
-        const val = e.target.value.toLowerCase();
-        tbody.querySelectorAll('tr').forEach(tr=>{
-            if(!tr.dataset.id) return;
-            const text = tr.children[1].textContent.toLowerCase();
-            tr.style.display = text.includes(val)?'':'none';
+        const value = e.target.value.toLowerCase();
+
+        tbody.querySelectorAll("tr[data-id]").forEach(tr => {
+            const nombre = tr.children[1].textContent.toLowerCase();
+            const mostrar = nombre.includes(value);
+
+            tr.style.display = mostrar ? "" : "none";
+
             const actionRow = tbody.querySelector(`tr.action-row[data-id='${tr.dataset.id}']`);
-            if(actionRow) actionRow.style.display = tr.style.display;
+            if(actionRow) actionRow.style.display = mostrar ? "" : "none";
         });
     });
 
     // GUARDAR PRODUCTO
     form.addEventListener('submit', e=>{
         e.preventDefault();
-        const data = new FormData(form);
-        const id = document.getElementById('idProducto_bodega').value;
 
-        fetch("/negocioencontrol/negocios/modulos/bodega_accion.php",{ method:'POST', body:data })
-        .then(r=>r.json()).then(resp=>{
+        const data = new FormData(form);
+
+        fetch("/negocioencontrol/negocios/modulos/bodega_accion.php",{
+            method:'POST',
+            body:data
+        })
+        .then(r=>r.json())
+        .then(resp=>{
             if(resp.ok){
                 alert(resp.msg);
                 closeForm();
-                location.reload(); // Aquí puedes mejorar para actualizar solo la fila sin recargar
-            } else alert(resp.msg);
+                location.reload();
+            } else {
+                alert(resp.msg);
+            }
         });
     });
 
 })();
+
+
+
+
+// === COMPRESOR AUTOMÁTICO PARA IMÁGENES DE MÓVIL ===
+const fileInput = document.getElementById("imagen_bodega");
+
+// Convierte la imagen a JPEG comprimido (hasta 0.7 de calidad)
+function compressImage(file, quality = 0.7) {
+    return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = event => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement("canvas");
+                const ctx = canvas.getContext("2d");
+                let w = img.width;
+                let h = img.height;
+
+                // Reducción si es demasiado grande
+                const MAX = 1200;
+                if (w > MAX || h > MAX) {
+                    if (w > h) {
+                        h *= MAX / w;
+                        w = MAX;
+                    } else {
+                        w *= MAX / h;
+                        h = MAX;
+                    }
+                }
+
+                canvas.width = w;
+                canvas.height = h;
+                ctx.drawImage(img, 0, 0, w, h);
+
+                canvas.toBlob(
+                    blob => { resolve(blob); },
+                    "image/jpeg",
+                    quality
+                );
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// Intercepta el archivo ANTES de enviarlo al backend
+fileInput.addEventListener("change", async function () {
+    const file = this.files[0];
+    if (!file) return;
+
+    // Validar formato (convierte HEIC/PNG/JPG)
+    const compressedBlob = await compressImage(file, 0.7);
+
+    // Crear un nuevo archivo comprimido
+    const newFile = new File([compressedBlob], "foto.jpg", { type: "image/jpeg" });
+
+    // Sustituir el archivo original por el comprimido
+    const dt = new DataTransfer();
+    dt.items.add(newFile);
+    fileInput.files = dt.files;
+
+    console.log("Imagen comprimida y lista para subir:", newFile);
+});
+
 </script>
- 

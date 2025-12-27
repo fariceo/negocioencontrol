@@ -37,7 +37,7 @@ if (!empty($_POST['eliminar'])) {
 $id           = intval($_POST['id'] ?? 0);
 $id_producto  = intval($_POST['id_producto'] ?? 0);
 $producto     = trim($_POST['producto'] ?? '');
-$codigo_barra = trim($_POST['codigo_barra'] ?? ''); // NUEVO
+$codigo_barra = trim($_POST['codigo_barra'] ?? '');
 $descripcion  = $_POST['descripcion'] ?? '';
 $cantidad     = floatval($_POST['cantidad']);
 $precio       = floatval($_POST['precio']);
@@ -49,8 +49,6 @@ $conexion->begin_transaction();
 try {
     // 1️⃣ Crear producto nuevo si id_producto=0
     if ($id_producto == 0 && $producto !== '') {
-
-        // Generar código si no se envió
         if (empty($codigo_barra)) {
             $codigo_barra = (string)time();
         }
@@ -61,21 +59,23 @@ try {
         ");
         $stmt->bind_param("sssdi", $codigo_barra, $producto, $precio, $categoria, $stockInicial);
         $stmt->execute();
-        $id_producto = $stmt->insert_id; // importante
+        $id_producto = $stmt->insert_id;
         $stmt->close();
     }
 
-    // 1️⃣b Si editas producto, actualizar también el código
-    if ($id > 0) {
+    // 2️⃣ Editar producto existente (actualiza todo)
+    if ($id_producto > 0) {
         $stmt = $conexion->prepare("
-            UPDATE productos SET codigo_barra=? WHERE id_producto=?
+            UPDATE productos SET
+            codigo_barra=?, producto=?, precio=?, categoria=?, stock_inicial=?
+            WHERE id_producto=?
         ");
-        $stmt->bind_param("si", $codigo_barra, $id_producto);
+        $stmt->bind_param("ssdssi", $codigo_barra, $producto, $precio, $categoria, $stockInicial, $id_producto);
         $stmt->execute();
         $stmt->close();
     }
 
-    // 2️⃣ Subir imagen si hay archivo
+    // 3️⃣ Subir imagen si hay archivo
     if (!empty($_FILES['imagen']['tmp_name'])) {
         $fileName = "prod_$id_producto.jpg";
         $bucket->upload(
@@ -86,7 +86,7 @@ try {
         $conexion->query("UPDATE productos SET imagen='$imgUrl' WHERE id_producto=$id_producto");
     }
 
-    // 3️⃣ Insertar o actualizar bodega
+    // 4️⃣ Insertar o actualizar bodega
     if ($id > 0) {
         $stmt = $conexion->prepare("
             UPDATE bodega SET

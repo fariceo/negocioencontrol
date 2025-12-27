@@ -20,6 +20,7 @@ $stmt = $conexion->prepare("
         b.id,
         b.id_producto,
         p.producto,
+        p.codigo_barra,
         b.descripcion,
         b.cantidad,
         b.precio,
@@ -80,7 +81,7 @@ $query = $stmt->get_result();
 
     <input type="number" name="cantidad" id="cantidad_bodega" placeholder="Cantidad">
     <input type="number" name="stock_inicial" id="stock_inicial_bodega" placeholder="Stock inicial">
-    <input type="number" name="precio" id="precio_bodega" placeholder="Precio">
+<input type="number" name="precio" id="precio_bodega" placeholder="Precio" step="0.01">
     <input type="text" name="categoria" id="categoria_bodega" placeholder="Categoría">
     <input type="file" name="imagen" id="imagen_bodega" accept="image/*">
 
@@ -125,13 +126,13 @@ $query = $stmt->get_result();
     data-precio="<?= $p['precio'] ?>"
     data-categoria="<?= htmlspecialchars($p['categoria']) ?>"
     data-stock="<?= $p['stock_inicial'] ?>"
-    data-codigo="<?= htmlspecialchars($p['codigo_barra']) ?>"
+    data-codigo_barra="<?= htmlspecialchars($p['codigo_barra']) ?>"
 >✏ Editar</button>
-
 
 <button class="btn btn-delete" style="background:#c0392b;" data-id="<?= $p['id'] ?>">🗑 Borrar</button>
 </td>
 </tr>
+
 <?php endwhile; ?>
 </tbody>
 </table>
@@ -175,11 +176,12 @@ if(t.classList.contains('btn-edit')){
     producto_bodega.value = t.dataset.producto;
     descripcion_bodega.value = t.dataset.descripcion;
     cantidad_bodega.value = t.dataset.cantidad;
-    precio_bodega.value = t.dataset.precio;
+    precio_bodega.value = t.dataset.precio; // float incluido
     categoria_bodega.value = t.dataset.categoria;
     stock_inicial_bodega.value = t.dataset.stock;
-    codigo_barra_bodega.value = t.dataset.codigo || '';
+    codigo_barra_bodega.value = t.dataset.codigo_barra || '';
 }
+
 
 if(t.classList.contains('btn-delete')){
     if(confirm('¿Eliminar este registro?')){
@@ -224,4 +226,3 @@ fetch("/negocioencontrol/negocios/modulos/bodega_accion.php",{
 });
 })();
 </script>
-

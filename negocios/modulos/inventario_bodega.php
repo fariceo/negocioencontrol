@@ -9,21 +9,27 @@ if (!isset($_SESSION['nombre_bd_negocio'])) {
 $db = new Conexion();
 $conexion = $db->negocio($_SESSION['nombre_bd_negocio']);
 $negocio = $_SESSION['nombre_bd_negocio'];
+
 $defaultImage = "/negocioencontrol/negocios/modulos/assets/default.png";
 
+/* =========================
+   CONSULTA ACTUALIZADA
+   ========================= */
 $stmt = $conexion->prepare("
     SELECT 
-        b.id, 
-        b.producto, 
-        b.descripcion, 
-        b.cantidad, 
-        b.precio, 
+        b.id,
+        b.id_producto,
+        p.producto,
+        b.descripcion,
+        b.cantidad,
+        b.precio,
         b.categoria,
+        b.stock_inicial,
         COALESCE(p.imagen,'') AS img
-    FROM bodega b 
-    LEFT JOIN productos p ON b.producto = p.producto
+    FROM bodega b
+    INNER JOIN productos p ON p.id_producto = b.id_producto
     WHERE b.negocio = ?
-    ORDER BY b.producto ASC
+    ORDER BY p.producto ASC
 ");
 $stmt->bind_param("s", $negocio);
 $stmt->execute();
@@ -59,19 +65,28 @@ $query = $stmt->get_result();
 </div>
 
 <div id="modalForm_bodega">
-    <div id="formBox_bodega">
-        <button style="background:#e74c3c;color:white;border:none;border-radius:5px;padding:8px 12px;" id="btnCerrar">Cerrar ✖</button>
-        <form id="formProducto_bodega" enctype="multipart/form-data">
-            <input type="hidden" name="id" id="idProducto_bodega">
-            <input type="text" name="producto" id="producto_bodega" placeholder="Producto" required>
-            <input type="text" name="descripcion" id="descripcion_bodega" placeholder="Descripción">
-            <input type="number" name="cantidad" id="cantidad_bodega" placeholder="Cantidad">
-            <input type="number" name="precio" id="precio_bodega" placeholder="Precio">
-            <input type="text" name="categoria" id="categoria_bodega" placeholder="Categoría">
-            <input type="file" name="imagen" id="imagen_bodega" accept="image/*">
-            <button type="submit" style="background:#27ae60;color:white;border:none;">Guardar</button>
-        </form>
-    </div>
+<div id="formBox_bodega">
+<button style="background:#e74c3c;color:white;border:none;border-radius:5px;padding:8px 12px;" id="btnCerrar">Cerrar ✖</button>
+
+<form id="formProducto_bodega" enctype="multipart/form-data">
+    <input type="hidden" name="id" id="idProducto_bodega">
+    <input type="hidden" name="id_producto" id="id_producto">
+
+    <input type="text" name="producto" id="producto_bodega" placeholder="Producto">
+    
+
+    <input type="text" name="descripcion" id="descripcion_bodega" placeholder="Descripción">
+    <input type="text" name="codigo_barra" id="codigo_barra_bodega" placeholder="Código de barras">
+
+    <input type="number" name="cantidad" id="cantidad_bodega" placeholder="Cantidad">
+    <input type="number" name="stock_inicial" id="stock_inicial_bodega" placeholder="Stock inicial">
+    <input type="number" name="precio" id="precio_bodega" placeholder="Precio">
+    <input type="text" name="categoria" id="categoria_bodega" placeholder="Categoría">
+    <input type="file" name="imagen" id="imagen_bodega" accept="image/*">
+
+    <button type="submit" style="background:#27ae60;color:white;border:none;">Guardar</button>
+</form>
+</div>
 </div>
 
 <img id="img_modal" onclick="this.style.display='none'">
@@ -87,206 +102,126 @@ $query = $stmt->get_result();
     <th>Imagen</th>
 </tr>
 </thead>
-<tbody id="tbody_bodega">
 
+<tbody id="tbody_bodega">
 <?php while($p=$query->fetch_assoc()): ?>
 <tr data-id="<?= $p['id'] ?>">
-    <td><?= $p['id'] ?></td>
-    <td><?= htmlspecialchars($p['producto']) ?></td>
-    <td><?= htmlspecialchars($p['descripcion']) ?></td>
-    <td><?= $p['cantidad'] ?></td>
-    <td><?= number_format($p['precio'],2) ?></td>
-    <td><img src="<?= !empty($p['img'])?$p['img']:$defaultImage ?>" class="img-card"></td>
+<td><?= $p['id'] ?></td>
+<td><?= htmlspecialchars($p['producto']) ?></td>
+<td><?= htmlspecialchars($p['descripcion']) ?></td>
+<td><?= $p['cantidad'] ?></td>
+<td><?= number_format($p['precio'],2) ?></td>
+<td><img src="<?= $p['img'] ?: $defaultImage ?>" class="img-card"></td>
 </tr>
-<tr class="action-row" data-id="<?= $p['id'] ?>">
-    <td colspan="6">
-        <button class="btn btn-edit"
-            data-id="<?= $p['id'] ?>"
-            data-producto="<?= htmlspecialchars($p['producto']) ?>"
-            data-descripcion="<?= htmlspecialchars($p['descripcion']) ?>"
-            data-cantidad="<?= $p['cantidad'] ?>"
-            data-precio="<?= $p['precio'] ?>"
-            data-categoria="<?= htmlspecialchars($p['categoria']) ?>"
-        >✏ Editar</button>
 
-        <button class="btn btn-delete" style="background:#c0392b;" data-id="<?= $p['id'] ?>">🗑 Borrar</button>
-    </td>
+<tr class="action-row" data-id="<?= $p['id'] ?>">
+<td colspan="6">
+<button class="btn btn-edit"
+    data-id="<?= $p['id'] ?>"
+    data-id_producto="<?= $p['id_producto'] ?>"
+    data-producto="<?= htmlspecialchars($p['producto']) ?>"
+    data-descripcion="<?= htmlspecialchars($p['descripcion']) ?>"
+    data-cantidad="<?= $p['cantidad'] ?>"
+    data-precio="<?= $p['precio'] ?>"
+    data-categoria="<?= htmlspecialchars($p['categoria']) ?>"
+    data-stock="<?= $p['stock_inicial'] ?>"
+    data-codigo="<?= htmlspecialchars($p['codigo_barra']) ?>"
+>✏ Editar</button>
+
+
+<button class="btn btn-delete" style="background:#c0392b;" data-id="<?= $p['id'] ?>">🗑 Borrar</button>
+</td>
 </tr>
 <?php endwhile; ?>
-
 </tbody>
 </table>
 </div>
 
 <script>
 (function(){
-    const wrap = document.getElementById('bodega_wrap');
-    const modal = wrap.querySelector("#modalForm_bodega");
-    const form = wrap.querySelector("#formProducto_bodega");
-    const tbody = wrap.querySelector("#tbody_bodega");
-    const img_modal = document.getElementById('img_modal');
-    const searchInput = document.getElementById('searchInput');
+const wrap = document.getElementById('bodega_wrap');
+const modal = wrap.querySelector("#modalForm_bodega");
+const form = wrap.querySelector("#formProducto_bodega");
+const tbody = wrap.querySelector("#tbody_bodega");
+const img_modal = document.getElementById('img_modal');
+const searchInput = document.getElementById('searchInput');
 
-    function showForm(){ modal.style.display='flex'; }
-    function closeForm(){ modal.style.display='none'; form.reset(); }
+function showForm(){ modal.style.display='flex'; }
+function closeForm(){ modal.style.display='none'; form.reset(); }
+document.getElementById('btnNuevo').addEventListener('click',()=>{
+    form.reset();
+    wrap.querySelector("#idProducto_bodega").value = 0;
+    // Generar código automático
+    codigo_barra_bodega.value = Date.now(); // ejemplo: timestamp como código
+    showForm();
+});
 
-    // NUEVO PRODUCTO
-    document.getElementById('btnNuevo').addEventListener('click',()=>{
-        form.reset();
-        wrap.querySelector("#idProducto_bodega").value=0;
-        showForm();
-    });
+document.getElementById('btnCerrar').addEventListener('click',closeForm);
 
-    // CERRAR MODAL
-    document.getElementById('btnCerrar').addEventListener('click',()=>closeForm());
+tbody.addEventListener('click', e=>{
+    if(e.target.classList.contains('img-card')){
+        img_modal.src = e.target.src;
+        img_modal.style.display='block';
+    }
+});
 
-    // VER IMAGEN
-    tbody.addEventListener('click', e=>{
-        if(e.target.classList.contains('img-card')){
-            img_modal.src = e.target.src;
-            img_modal.style.display='block';
-        }
-    });
+tbody.addEventListener('click', e=>{
+const t = e.target;
 
-    // EDITAR / ELIMINAR
-    tbody.addEventListener('click', e=>{
-        const target = e.target;
+if(t.classList.contains('btn-edit')){
+    showForm();
+    idProducto_bodega.value = t.dataset.id;
+    id_producto.value = t.dataset.id_producto;
+    producto_bodega.value = t.dataset.producto;
+    descripcion_bodega.value = t.dataset.descripcion;
+    cantidad_bodega.value = t.dataset.cantidad;
+    precio_bodega.value = t.dataset.precio;
+    categoria_bodega.value = t.dataset.categoria;
+    stock_inicial_bodega.value = t.dataset.stock;
+    codigo_barra_bodega.value = t.dataset.codigo || '';
+}
 
-        // EDITAR
-        if(target.classList.contains('btn-edit')){
-            showForm();
-            wrap.querySelector("#idProducto_bodega").value = target.dataset.id;
-            wrap.querySelector("#producto_bodega").value = target.dataset.producto;
-            wrap.querySelector("#descripcion_bodega").value = target.dataset.descripcion;
-            wrap.querySelector("#cantidad_bodega").value = target.dataset.cantidad;
-            wrap.querySelector("#precio_bodega").value = target.dataset.precio;
-            wrap.querySelector("#categoria_bodega").value = target.dataset.categoria;
-        }
-
-        // ELIMINAR
-        if(target.classList.contains('btn-delete')){
-            const id = target.dataset.id;
-            if(confirm('¿Eliminar este registro?')){
-                fetch("/negocioencontrol/negocios/modulos/bodega_accion.php",{
-                    method:'POST',
-                    headers:{'Content-Type':'application/x-www-form-urlencoded'},
-                    body:`eliminar=1&id=${id}`
-                })
-                .then(r=>r.json())
-                .then(resp=>{
-                    if(resp.ok){
-                        tbody.querySelector(`tr[data-id='${id}']`).remove();
-                        tbody.querySelector(`tr.action-row[data-id='${id}']`).remove();
-                    } else {
-                        alert(resp.msg);
-                    }
-                });
-            }
-        }
-    });
-
-    // BUSCADOR
-    searchInput.addEventListener('input', e=>{
-        const value = e.target.value.toLowerCase();
-
-        tbody.querySelectorAll("tr[data-id]").forEach(tr => {
-            const nombre = tr.children[1].textContent.toLowerCase();
-            const mostrar = nombre.includes(value);
-
-            tr.style.display = mostrar ? "" : "none";
-
-            const actionRow = tbody.querySelector(`tr.action-row[data-id='${tr.dataset.id}']`);
-            if(actionRow) actionRow.style.display = mostrar ? "" : "none";
-        });
-    });
-
-    // GUARDAR PRODUCTO
-    form.addEventListener('submit', e=>{
-        e.preventDefault();
-
-        const data = new FormData(form);
-
+if(t.classList.contains('btn-delete')){
+    if(confirm('¿Eliminar este registro?')){
         fetch("/negocioencontrol/negocios/modulos/bodega_accion.php",{
             method:'POST',
-            body:data
+            headers:{'Content-Type':'application/x-www-form-urlencoded'},
+            body:`eliminar=1&id=${t.dataset.id}`
         })
         .then(r=>r.json())
         .then(resp=>{
             if(resp.ok){
-                alert(resp.msg);
-                closeForm();
-                location.reload();
-            } else {
-                alert(resp.msg);
-            }
+                tbody.querySelector(`tr[data-id='${t.dataset.id}']`).remove();
+                tbody.querySelector(`tr.action-row[data-id='${t.dataset.id}']`).remove();
+            } else alert(resp.msg);
         });
-    });
-
-})();
-
-
-
-
-// === COMPRESOR AUTOMÁTICO PARA IMÁGENES DE MÓVIL ===
-const fileInput = document.getElementById("imagen_bodega");
-
-// Convierte la imagen a JPEG comprimido (hasta 0.7 de calidad)
-function compressImage(file, quality = 0.7) {
-    return new Promise(resolve => {
-        const reader = new FileReader();
-        reader.onload = event => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement("canvas");
-                const ctx = canvas.getContext("2d");
-                let w = img.width;
-                let h = img.height;
-
-                // Reducción si es demasiado grande
-                const MAX = 1200;
-                if (w > MAX || h > MAX) {
-                    if (w > h) {
-                        h *= MAX / w;
-                        w = MAX;
-                    } else {
-                        w *= MAX / h;
-                        h = MAX;
-                    }
-                }
-
-                canvas.width = w;
-                canvas.height = h;
-                ctx.drawImage(img, 0, 0, w, h);
-
-                canvas.toBlob(
-                    blob => { resolve(blob); },
-                    "image/jpeg",
-                    quality
-                );
-            };
-            img.src = event.target.result;
-        };
-        reader.readAsDataURL(file);
-    });
+    }
 }
-
-// Intercepta el archivo ANTES de enviarlo al backend
-fileInput.addEventListener("change", async function () {
-    const file = this.files[0];
-    if (!file) return;
-
-    // Validar formato (convierte HEIC/PNG/JPG)
-    const compressedBlob = await compressImage(file, 0.7);
-
-    // Crear un nuevo archivo comprimido
-    const newFile = new File([compressedBlob], "foto.jpg", { type: "image/jpeg" });
-
-    // Sustituir el archivo original por el comprimido
-    const dt = new DataTransfer();
-    dt.items.add(newFile);
-    fileInput.files = dt.files;
-
-    console.log("Imagen comprimida y lista para subir:", newFile);
 });
 
+searchInput.addEventListener('input', e=>{
+const value = e.target.value.toLowerCase();
+tbody.querySelectorAll("tr[data-id]").forEach(tr=>{
+    const nombre = tr.children[1].textContent.toLowerCase();
+    const show = nombre.includes(value);
+    tr.style.display = show ? "" : "none";
+    const action = tbody.querySelector(`tr.action-row[data-id='${tr.dataset.id}']`);
+    if(action) action.style.display = show ? "" : "none";
+});
+});
+
+form.addEventListener('submit', e=>{
+e.preventDefault();
+fetch("/negocioencontrol/negocios/modulos/bodega_accion.php",{
+    method:'POST',
+    body:new FormData(form)
+})
+.then(r=>r.json())
+.then(resp=>{
+    alert(resp.msg);
+    if(resp.ok){ closeForm(); location.reload(); }
+});
+});
+})();
 </script>
+

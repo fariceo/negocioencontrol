@@ -225,4 +225,61 @@ fetch("/negocioencontrol/negocios/modulos/bodega_accion.php",{
 });
 });
 })();
+
+// === COMPRESOR AUTOMÁTICO PARA IMÁGENES (MISMO QUE VERSIÓN VIEJA) ===
+const fileInput = document.getElementById("imagen_bodega");
+
+function compressImage(file, quality = 0.7) {
+    return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = event => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement("canvas");
+                const ctx = canvas.getContext("2d");
+
+                let w = img.width;
+                let h = img.height;
+                const MAX = 1200;
+
+                if (w > MAX || h > MAX) {
+                    if (w > h) {
+                        h *= MAX / w;
+                        w = MAX;
+                    } else {
+                        w *= MAX / h;
+                        h = MAX;
+                    }
+                }
+
+                canvas.width = w;
+                canvas.height = h;
+                ctx.drawImage(img, 0, 0, w, h);
+
+                canvas.toBlob(
+                    blob => resolve(blob),
+                    "image/jpeg",
+                    quality
+                );
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+fileInput.addEventListener("change", async function () {
+    const file = this.files[0];
+    if (!file) return;
+
+    const compressedBlob = await compressImage(file, 0.7);
+    const newFile = new File([compressedBlob], "foto.jpg", { type: "image/jpeg" });
+
+    const dt = new DataTransfer();
+    dt.items.add(newFile);
+    fileInput.files = dt.files;
+
+    console.log("Imagen comprimida y lista:", newFile);
+});
+
 </script>

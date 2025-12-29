@@ -75,16 +75,26 @@ try {
         $stmt->close();
     }
 
-    // 3️⃣ Subir imagen si hay archivo
-    if (!empty($_FILES['imagen']['tmp_name'])) {
-        $fileName = "prod_$id_producto.jpg";
-        $bucket->upload(
-            fopen($_FILES['imagen']['tmp_name'], 'r'),
-            ['name'=>"$negocio/productos/$fileName"]
-        );
-        $imgUrl = "https://storage.googleapis.com/$bucketName/$negocio/productos/$fileName?v=".time();
-        $conexion->query("UPDATE productos SET imagen='$imgUrl' WHERE id_producto=$id_producto");
-    }
+  // 3️⃣ Subir imagen SOLO si realmente hay archivo válido
+if (
+    isset($_FILES['imagen']) &&
+    is_uploaded_file($_FILES['imagen']['tmp_name'])
+) {
+    $fileName = "prod_$id_producto.jpg";
+
+    $bucket->upload(
+        fopen($_FILES['imagen']['tmp_name'], 'r'),
+        ['name' => "$negocio/productos/$fileName"]
+    );
+
+    $imgUrl = "https://storage.googleapis.com/$bucketName/$negocio/productos/$fileName?v=" . time();
+    $conexion->query("
+        UPDATE productos 
+        SET imagen='$imgUrl' 
+        WHERE id_producto=$id_producto
+    ");
+}
+
 
     // 4️⃣ Insertar o actualizar bodega
     if ($id > 0) {

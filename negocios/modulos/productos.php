@@ -1,5 +1,7 @@
 <?php
 session_start();
+date_default_timezone_set('America/Guayaquil');
+
 include $_SERVER['DOCUMENT_ROOT'].'/negocioencontrol/core/conexion.php';
 
 if (!isset($_SESSION['nombre_bd_negocio'])) {
@@ -13,11 +15,9 @@ $usuario = $_SESSION['usuario'] ?? 'default_user';
 
 // Consulta productos con stock
 $query = $conexion->query("
-    SELECT p.*, 
-           COALESCE(b.cantidad,0) AS stock_actual
+    SELECT p.id_producto, p.producto, p.precio, p.imagen, COALESCE(b.cantidad,0) AS stock_actual
     FROM productos p
-    LEFT JOIN bodega b 
-           ON p.producto COLLATE utf8mb4_unicode_ci = b.producto COLLATE utf8mb4_unicode_ci
+    LEFT JOIN bodega b ON p.id_producto = b.id_producto
     WHERE COALESCE(b.cantidad,0) > 0
     ORDER BY p.producto ASC
 ");
@@ -74,7 +74,7 @@ button.agregar:hover {background:#1e8449;}
     <div class="producto-nombre"><?= htmlspecialchars($p['producto']) ?></div>
     <div class="producto-precio">$<?= number_format($p['precio'],2) ?></div>
     <input type="number" class="cantidad" value="1" min="1">
-    <button class="agregar" data-producto="<?= htmlspecialchars($p['producto']) ?>" data-precio="<?= $p['precio'] ?>">Agregar</button>
+    <button class="agregar" data-id="<?= $p['id_producto'] ?>" data-producto="<?= htmlspecialchars($p['producto']) ?>" data-precio="<?= $p['precio'] ?>">Agregar</button>
 </div>
 <?php endwhile; ?>
 </div>
@@ -93,7 +93,7 @@ button.agregar:hover {background:#1e8449;}
 
     <div id="total">Total: $0.00</div>
 
-    <!-- Nueva sección para cobrar -->
+    <!-- Cobro -->
     <div id="cobroForm" style="padding:15px; border-top:1px solid #ddd;">
         <label>Nombre del cliente:</label>
         <input type="text" id="nombreCliente" placeholder="Ej: Juan Pérez" style="width:100%; padding:6px; margin-bottom:8px; border:1px solid #ccc; border-radius:4px;">
@@ -104,16 +104,15 @@ button.agregar:hover {background:#1e8449;}
         <div style="margin:8px 0;">
             <label><input type="radio" name="metodoPago" value="efectivo" checked> Efectivo</label>
             <label style="margin-left:15px;"><input type="radio" name="metodoPago" value="transferencia"> Transferencia</label>
+            <label><input type="radio" name="metodoPago" value="credito" > Credito</label>
+
         </div>
+
 
         <button id="btnCobrar" style="width:100%; background:#007bff; color:#fff; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer;">💰 Cobrar</button>
     </div>
 </div>
 
-<div id="notificacionProducto"></div>
-
-
-<!-- Notificación -->
 <div id="notificacionProducto"></div>
 
 <script>
@@ -125,16 +124,16 @@ button.agregar:hover {background:#1e8449;}
     const itemsCont = document.getElementById('itemsCarrito');
     const totalDiv = document.getElementById('total');
     const noti = document.getElementById('notificacionProducto');
+    const usuario = "<?= $usuario ?>";
 
-    // === Función principal para actualizar el carrito ===
     function actualizarCarrito(){
         fetch('/negocioencontrol/negocios/modulos/cargar_carrito.php?accion=cargar')
         .then(res=>res.json())
         .then(data=>{
             let total = 0;
             itemsCont.innerHTML = '';
-            if (!Array.isArray(data) || data.length === 0) {
-                itemsCont.innerHTML = `<div style="text-align:center; color:#999;">🛒 Tu carrito está vacío</div>`;
+            if(!Array.isArray(data) || data.length===0){
+                itemsCont.innerHTML = `<div style="text-align:center;color:#999;">🛒 Tu carrito está vacío</div>`;
                 contador.textContent = 0;
                 totalDiv.textContent = 'Total: $0.00';
                 return;
@@ -143,85 +142,34 @@ button.agregar:hover {background:#1e8449;}
                 const div = document.createElement('div');
                 div.className = 'carrito-item';
                 div.innerHTML = `
-                    <span>${item.producto} x 
-                        <input type="number" class="cantItem" data-id="${item.id}" value="${item.cantidad}" min="1"/>
-                    </span>
-                    <span>$${(item.precio * item.cantidad).toFixed(2)}</span>
+                    <span>${item.producto} x <input type="number" class="cantItem" data-id="${item.id}" value="${item.cantidad}" min="1"/></span>
+                    <span>$${(item.precio*item.cantidad).toFixed(2)}</span>
                     <button class="eliminar" data-id="${item.id}">X</button>
                 `;
                 itemsCont.appendChild(div);
-                total += item.precio * item.cantidad;
+                total += item.precio*item.cantidad;
             });
             contador.textContent = data.length;
             totalDiv.textContent = 'Total: $' + total.toFixed(2);
-        })
-        .catch(err=>console.error("Error cargando carrito:", err));
+        });
     }
 
-    // === Función COBRAR ===
-document.getElementById('btnCobrar').addEventListener('click', ()=>{
-    const correo = document.getElementById('correoCliente').value.trim();
-    const metodo_pago = document.querySelector('input[name="metodoPago"]:checked').value;
-    const nombreCliente = document.getElementById('nombreCliente').value.trim(); // 👈 esto faltaba
+    carritoBtn.onclick = ()=> carritoCont.style.display='flex';
+    cerrarBtn.onclick = ()=> carritoCont.style.display='none';
 
-    // Validar carrito antes de cobrar
-    fetch('/negocioencontrol/negocios/modulos/cargar_carrito.php?accion=cargar')
-    .then(res=>res.json())
-    .then(data=>{
-        if (!Array.isArray(data) || data.length === 0){
-            alert("El carrito está vacío. Agrega productos antes de cobrar.");
-            return;
-        }
-
-        // Enviar datos al backend
-        const formData = new FormData();
-         formData.append('nombreCliente', nombreCliente); // 👈 importante
-        formData.append('correo', correo);
-        formData.append('metodo_pago', metodo_pago);
-
-        fetch('/negocioencontrol/negocios/modulos/cobrar_carrito.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(res=>res.json())
-        .then(data=>{
-            if(data.ok){
-                alert(`✅ Venta registrada correctamente.\nCódigo: ${data.codigo_compra}`);
-                // Vaciar carrito visual
-                document.getElementById('itemsCarrito').innerHTML = '<div style="text-align:center; color:#999;">🛒 Tu carrito está vacío</div>';
-                document.getElementById('contadorCarrito').textContent = '0';
-                document.getElementById('total').textContent = 'Total: $0.00';
-                // Limpiar campos
-                document.getElementById('correoCliente').value = '';
-                document.getElementById('nombreCliente').value = '';
-            }else{
-                alert("⚠️ Error: " + data.mensaje);
-            }
-        })
-        .catch(err=>{
-            console.error("Error al cobrar:", err);
-            alert("Error al procesar la venta");
-        });
-    });
-});
-
-
-    // === Mostrar/Ocultar ===
-    carritoBtn.onclick = ()=> carritoCont.style.display = 'flex';
-    cerrarBtn.onclick = ()=> carritoCont.style.display = 'none';
-
-    // === Delegación de eventos ===
     document.body.addEventListener('click', e=>{
-        // Agregar producto
+        // Agregar
         if(e.target.classList.contains('agregar')){
             const card = e.target.closest('.producto-card');
+            const id_producto = parseInt(e.target.dataset.id);
             const producto = e.target.dataset.producto;
             const precio = parseFloat(e.target.dataset.precio);
             const cantidad = parseInt(card.querySelector('.cantidad').value);
+
             fetch('/negocioencontrol/negocios/modulos/cargar_carrito.php?accion=agregar',{
                 method:'POST',
                 headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({producto,precio,cantidad})
+                body: JSON.stringify({id_producto, producto, precio, cantidad})
             })
             .then(res=>res.json())
             .then(data=>{
@@ -229,16 +177,16 @@ document.getElementById('btnCobrar').addEventListener('click', ()=>{
                     actualizarCarrito();
                     noti.textContent = `"${producto}" agregado al carrito`;
                     noti.style.opacity = 1;
-                    setTimeout(()=>noti.style.opacity = 0, 1200);
+                    setTimeout(()=>noti.style.opacity=0,1200);
                 }
             });
         }
 
-        // Modificar cantidad
+        // Modificar
         if(e.target.classList.contains('cantItem')){
-            const id = e.target.dataset.id;
+            const id = parseInt(e.target.dataset.id);
             const cantidad = parseInt(e.target.value);
-            if(cantidad < 1) return;
+            if(cantidad<1) return;
             fetch('/negocioencontrol/negocios/modulos/cargar_carrito.php?accion=modificar',{
                 method:'POST',
                 headers:{'Content-Type':'application/json'},
@@ -248,7 +196,7 @@ document.getElementById('btnCobrar').addEventListener('click', ()=>{
 
         // Eliminar
         if(e.target.classList.contains('eliminar')){
-            const id = e.target.dataset.id;
+            const id = parseInt(e.target.dataset.id);
             fetch('/negocioencontrol/negocios/modulos/cargar_carrito.php?accion=eliminar',{
                 method:'POST',
                 headers:{'Content-Type':'application/json'},
@@ -257,24 +205,54 @@ document.getElementById('btnCobrar').addEventListener('click', ()=>{
         }
     });
 
-    // === Filtro de productos ===
-    const buscador = document.getElementById('buscador');
-    buscador.addEventListener('input', ()=>{
-        const filtro = buscador.value.toLowerCase();
+    // Cobrar
+    document.getElementById('btnCobrar').addEventListener('click', ()=>{
+        const nombreCliente = document.getElementById('nombreCliente').value.trim();
+        const correo = document.getElementById('correoCliente').value.trim();
+        const metodo_pago = document.querySelector('input[name="metodoPago"]:checked').value;
+
+        if(!nombreCliente){ alert('Ingrese nombre del cliente'); return; }
+
+        fetch('/negocioencontrol/negocios/modulos/cargar_carrito.php?accion=cargar')
+        .then(res=>res.json())
+        .then(carrito=>{
+            if(!Array.isArray(carrito) || carrito.length===0){
+                alert('El carrito está vacío');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('nombreCliente', nombreCliente);
+            formData.append('correo', correo);
+            formData.append('metodo_pago', metodo_pago);
+            formData.append('carrito', JSON.stringify(carrito));
+
+            fetch('/negocioencontrol/negocios/modulos/cobrar_carrito.php', {method:'POST', body: formData})
+            .then(res=>res.json())
+            .then(data=>{
+                if(data.ok){
+                    alert(`✅ Venta registrada\nCódigo: ${data.codigo_compra}`);
+                    actualizarCarrito();
+                    document.getElementById('nombreCliente').value='';
+                    document.getElementById('correoCliente').value='';
+                }else{
+                    alert("⚠️ "+data.mensaje);
+                }
+            }).catch(err=>{ console.error(err); alert("Error al procesar la venta"); });
+        });
+    });
+
+    // Buscador
+    document.getElementById('buscador').addEventListener('input', ()=>{
+        const filtro = document.getElementById('buscador').value.toLowerCase();
         document.querySelectorAll('.producto-card').forEach(card=>{
             const nombre = card.querySelector('.producto-nombre').textContent.toLowerCase();
             card.style.display = nombre.includes(filtro) ? 'flex' : 'none';
         });
     });
 
-    // === Mantener carrito siempre sincronizado ===
     actualizarCarrito();
-    window.actualizarCarritoGlobal = actualizarCarrito; // 👈 accesible desde otros módulos
 })();
-
-
-
 </script>
-
 </body>
 </html>

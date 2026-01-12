@@ -4,89 +4,84 @@ include $_SERVER['DOCUMENT_ROOT'].'/negocioencontrol/core/conexion.php';
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['nombre_bd_negocio'])) {
-    echo json_encode(['ok'=>false,'mensaje'=>'Sesión expirada. Inicia sesión nuevamente']);
+    echo json_encode(['ok'=>false,'mensaje'=>'Sesión expirada']);
     exit;
 }
 
 $db = new Conexion();
 $conexion = $db->negocio($_SESSION['nombre_bd_negocio']);
-
 $usuario = $_SESSION['usuario'] ?? 'default_user';
-$negocio = $_SESSION['nombre_bd_negocio'];
 
-// Recibir datos del cliente
-$nombreCliente = trim($_POST['nombreCliente'] ?? '');
-$correoCliente  = trim($_POST['correo'] ?? '');
-$metodo_pago    = $_POST['metodo_pago'] ?? 'efectivo';
+$nombreCliente = $_POST['nombreCliente'] ?? '';
+$correo = $_POST['correo'] ?? ''; // si quieres guardar, aunque tu tabla no tiene columna correo
+$metodo_pago = $_POST['metodo_pago'] ?? '';
 
-// Validaciones
 if(!$nombreCliente){
-    echo json_encode(['ok'=>false,'mensaje'=>'Ingrese nombre del cliente']);
+    echo json_encode(['ok'=>false,'mensaje'=>'Nombre del cliente requerido']);
     exit;
 }
 
-// Obtener carrito del vendedor
-$carritoRes = $conexion->query("
-    SELECT producto, precio, cantidad 
-    FROM carrito 
-    WHERE negocio='$negocio' 
-      AND usuario='$usuario' 
-      AND estado='pendiente'
+// Traer carrito activo del usuario
+$res = $conexion->query("
+    SELECT c.id, c.id_producto, p.producto, p.precio, c.cantidad 
+    FROM carrito c 
+    JOIN productos p ON c.id_producto = p.id_producto 
+    WHERE c.usuario='{$usuario}' AND c.estado='activo'
 ");
 
 $carrito = [];
 $total = 0;
+while($row = $res->fetch_assoc()){
+    $carrito[] = $row;
+    $total += (float)$row['precio'] * (int)$row['cantidad'];
 
-while($row = $carritoRes->fetch_assoc()){
-    $precio = floatval($row['precio']);
-    $cantidad = intval($row['cantidad']);
-    $subtotal = $precio * $cantidad;
-
-    $carrito[] = [
-        'producto' => $row['producto'],
-        'precio' => $precio,
-        'cantidad' => $cantidad,
-        'subtotal' => $subtotal
-    ];
-
-    $total += $subtotal;
 }
 
 if(empty($carrito)){
-    echo json_encode(['ok'=>false,'mensaje'=>'El carrito está vacío']);
+    echo json_encode(['ok'=>false,'mensaje'=>'Carrito vacío']);
     exit;
 }
 
-// Convertir productos a JSON
+// Crear código de venta
+$codigo_compra = 'VENTA'.time();
 $productos_json = json_encode($carrito, JSON_UNESCAPED_UNICODE);
 
-// Insertar en tabla ventas
+
+// Calcular total directamente desde MySQL (forma segura)
+$resTotal = $conexion->query("
+    SELECT SUM(p.precio * c.cantidad) AS total
+    FROM carrito c
+    JOIN productos p ON c.id_producto = p.id_producto
+    WHERE c.usuario = '{$usuario}'
+      AND c.estado = 'activo'
+");
+
+$rowTotal = $resTotal->fetch_assoc();
+$total = (float)$rowTotal['total'];
+
+
+
+// Insertar en ventas
 $stmt = $conexion->prepare("
-    INSERT INTO ventas (negocio, vendedor, cliente, productos, total, metodo_pago, fecha_hora)
+    INSERT INTO ventas (negocio, vendedor, cliente, productos, total, metodo_pago, fecha_hora) 
     VALUES (?, ?, ?, ?, ?, ?, NOW())
 ");
-$stmt->bind_param("ssssds", $negocio, $usuario, $nombreCliente, $productos_json, $total, $metodo_pago);
+$stmt->bind_param("ssssds",
+    $_SESSION['nombre_bd_negocio'], // negocio
+    $usuario,                        // vendedor
+    $nombreCliente,                   // cliente
+    $productos_json,                  // productos
+    $total,                           // total
+    $metodo_pago                      // metodo_pago
+);
+$stmt->execute();
+$stmt->close();
 
-if(!$stmt->execute()){
-    echo json_encode(['ok'=>false,'mensaje'=>'Error al registrar la venta: '.$stmt->error]);
-    exit;
-}
+// Marcar carrito como procesado para no perder historial
+$stmt = $conexion->prepare("UPDATE carrito SET estado='procesado' WHERE usuario=? AND estado='activo'");
+$stmt->bind_param("s",$usuario);
+$stmt->execute();
+$stmt->close();
 
-// Marcar carrito como completado
-$conexion->query("
-    UPDATE carrito 
-    SET estado='completado' 
-    WHERE negocio='$negocio' 
-      AND usuario='$usuario' 
-      AND estado='pendiente'
-");
-
-// Eliminar del carrito después de registrar la venta
-$conexion->query("
-    DELETE FROM carrito
-    WHERE negocio='$negocio'
-      AND usuario='$usuario'
-      AND estado='completado'
-");
-// Respuesta OK con ID de la venta
-echo json_encode(['ok'=>true,'codigo_compra'=>$conexion->insert_id]);
+echo json_encode(['ok'=>true,'codigo_compra'=>$codigo_compra]);
+?>

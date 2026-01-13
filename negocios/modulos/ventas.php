@@ -29,47 +29,59 @@ if($result){
 </div>
 
 <div class="ventas-container">
-    <?php if(empty($ventas)): ?>
-        <p style="text-align:center; color:#888; margin-top:20px;">No hay ventas registradas</p>
-    <?php else: ?>
-        <?php foreach($ventas as $venta): ?>
-            <?php $productos = json_decode($venta['productos'], true); ?>
-            <div class="venta-card">
-                <div class="venta-header">
-                    <span><strong>Cliente / Código:</strong> <?= htmlspecialchars($venta['cliente']) ?></span>
-                    <span><strong>Vendedor:</strong> <?= htmlspecialchars($venta['vendedor']) ?></span>
-                </div>
-                <div class="venta-productos">
-                   <?php
-$totalVenta = 0;
-foreach ($productos as $p):
-    $precio   = (float)$p['precio'];
-    $cantidad = (int)$p['cantidad'];
-    $subtotal = $precio * $cantidad;
-    $totalVenta += $subtotal;
-?>
-    <div class="producto-item">
-        <?= $cantidad ?> x <?= htmlspecialchars($p['producto']) ?>
-        x $<?= number_format($precio,2) ?>
-        = <strong>$<?= number_format($subtotal,2) ?></strong>
+<?php if(empty($ventas)): ?>
+    <p style="text-align:center; color:#888; margin-top:20px;">No hay ventas registradas</p>
+<?php else: ?>
+<?php foreach($ventas as $venta): ?>
+<?php $productos = json_decode($venta['productos'], true); ?>
+
+<div class="venta-card">
+
+    <div class="venta-header">
+        <span><strong>Cliente / Código:</strong> <?= htmlspecialchars($venta['cliente']) ?></span>
+        <span><strong>Vendedor:</strong> <?= htmlspecialchars($venta['vendedor']) ?></span>
     </div>
-<?php endforeach; ?>
 
-<div class="venta-total">
-    TOTAL: $<?= number_format($totalVenta,2) ?>
-</div>
-
-                </div>
-          <div class="venta-footer">
-    <span class="badge badge-<?= $venta['metodo_pago'] ?>">
-        <?= strtoupper($venta['metodo_pago']) ?>
-    </span>
-</div>
-
-
-            </div>
+    <div class="venta-productos">
+        <?php
+        $totalVenta = 0;
+        foreach ($productos as $p):
+            $precio   = (float)$p['precio'];
+            $cantidad = (int)$p['cantidad'];
+            $subtotal = $precio * $cantidad;
+            $totalVenta += $subtotal;
+        ?>
+        <div class="producto-item">
+            <?= $cantidad ?> x <?= htmlspecialchars($p['producto']) ?>
+            x $<?= number_format($precio,2) ?>
+            = <strong>$<?= number_format($subtotal,2) ?></strong>
+        </div>
         <?php endforeach; ?>
-    <?php endif; ?>
+
+        <div class="venta-total">
+            TOTAL: $<?= number_format($totalVenta,2) ?>
+        </div>
+    </div>
+
+    <div class="venta-footer">
+        <?php if (strtolower($venta['metodo_pago']) === 'credito'): ?>
+            <a 
+                href="/negocioencontrol/negocios/modulos/credito/ficha_credito.php?usuario=<?= urlencode($venta['cliente']) ?>"
+                class="badge badge-credito"
+                style="text-decoration:none;"
+            >
+                CREDITO
+            </a>
+        <?php else: ?>
+            <span class="badge badge-<?= strtolower($venta['metodo_pago']) ?>">
+                <?= strtoupper($venta['metodo_pago']) ?>
+            </span>
+        <?php endif; ?>
+    </div>
+
+</div>
+<?php endforeach; ?>
+<?php endif; ?>
 </div>
 
 <style>
@@ -113,21 +125,17 @@ foreach ($productos as $p):
     color:#fff;
     font-size:0.8em;
 }
-.badge-efectivo {background:#27ae60;}
-.badge-transferencia {background:#2980b9;}
-.badge-credito{
-    background:#f39c12;
-    color:#fff;
-}
+.badge-efectivo { background:#27ae60; }
+.badge-transferencia { background:#2980b9; }
+.badge-credito { background:#f39c12; }
 
 .venta-total {
+    margin-top:8px;
     font-weight:bold;
+    text-align:right;
     color:#16a085;
 }
-.venta-fecha {
-    font-size:0.8em;
-    color:#888;
-}
+
 @media(max-width:768px){
     .venta-header, .venta-footer {
         flex-direction:column;
@@ -139,34 +147,6 @@ foreach ($productos as $p):
         padding:10px;
     }
 }
-
-
-.btn-prueba {
-    padding: 5px 10px;
-    background: #8e44ad;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.8em;
-    transition: 0.2s;
-}
-
-.btn-prueba:hover {
-    background: #732d91;
-}
-
-
-.venta-total {
-    margin-top: 8px;
-    font-weight: bold;
-    text-align: right;
-    color: #16a085;
-    font-size: 1em;
-}
-
-
-
 </style>
 
 <script>

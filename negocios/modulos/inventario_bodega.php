@@ -38,6 +38,45 @@ $query = $stmt->get_result();
 ?>
 
 <style>
+    .row-card td {
+    padding: 0;
+    border: none;
+}
+
+.card-img {
+    width: 100%;
+    max-height: 250px;      /* 👈 MUY compacta */
+    overflow: hidden;
+    border-radius: 6px;
+    margin: 4px 0;
+}
+
+.card-img img {
+    width: 100%;
+    height: 250px;          /* 👈 altura fija pequeña */
+    object-fit: cover;
+    display: block;
+}
+
+/* tabla limpia */
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+td, th {
+    padding: 4px 6px;      /* 👈 menos espacio */
+    font-size: 0.9em;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.action-row td {
+    background: #fafafa;
+    padding: 5px;
+}
+
+</style>
+<style>
 #bodega_wrap * { box-sizing:border-box; }
 #bodega_wrap { font-family:Arial; background:#f7f7f7; padding:10px; }
 #bodega_wrap header { background:#34495e; color:white; padding:12px; text-align:center; font-size:20px; font-weight:bold; border-radius:6px; margin-bottom:10px; }
@@ -64,7 +103,6 @@ $query = $stmt->get_result();
 <div class="toolbar">
     <button class="btn" id="btnNuevo">➕ Nuevo Producto</button>
 </div>
-
 <div id="modalForm_bodega">
 <div id="formBox_bodega">
 <button style="background:#e74c3c;color:white;border:none;border-radius:5px;padding:8px 12px;" id="btnCerrar">Cerrar ✖</button>
@@ -72,6 +110,10 @@ $query = $stmt->get_result();
 <form id="formProducto_bodega" enctype="multipart/form-data">
     <input type="hidden" name="id" id="idProducto_bodega">
     <input type="hidden" name="id_producto" id="id_producto">
+
+    <!-- IMAGEN ARRIBA (MISMO ID / NAME) -->
+    <label for="imagen_bodega"><strong>Imagen del producto:</strong></label>
+    <input type="file" name="imagen" id="imagen_bodega" accept="image/*">
 
     <label for="producto_bodega"><strong>Nombre del producto:</strong></label>
     <input type="text" name="producto" id="producto_bodega" placeholder="Ej: Arroz">
@@ -94,14 +136,14 @@ $query = $stmt->get_result();
     <label for="categoria_bodega"><strong>Categoría del producto:</strong></label>
     <input type="text" name="categoria" id="categoria_bodega" placeholder="Ej: Granos, Bebidas">
 
-    <label for="imagen_bodega"><strong>Imagen del producto:</strong></label>
-    <input type="file" name="imagen" id="imagen_bodega" accept="image/*">
-
-    <button type="submit" style="background:#27ae60;color:white;border:none;">Guardar</button>
+    <button type="submit" style="background:#27ae60;color:white;border:none;">
+        Guardar
+    </button>
 </form>
 
 </div>
 </div>
+
 
 <img id="img_modal" onclick="this.style.display='none'">
 
@@ -113,41 +155,55 @@ $query = $stmt->get_result();
     <th>Descripción</th>
     <th>Cantidad</th>
     <th>Precio</th>
-    <th>Imagen</th>
 </tr>
 </thead>
 
 <tbody id="tbody_bodega">
 <?php while($p=$query->fetch_assoc()): ?>
-<tr data-id="<?= $p['id'] ?>">
-<td><?= $p['id'] ?></td>
-<td><?= htmlspecialchars($p['producto']) ?></td>
-<td><?= htmlspecialchars($p['descripcion']) ?></td>
-<td><?= $p['cantidad'] ?></td>
-<td><?= number_format($p['precio'],2) ?></td>
-<td><img src="<?= $p['img'] ?: $defaultImage ?>" class="img-card"></td>
+
+<!-- FILA IMAGEN / TARJETA -->
+<tr class="row-card">
+    <td colspan="6">
+        <div class="card-img">
+            <img src="<?= $p['img'] ?: $defaultImage ?>" alt="Producto">
+        </div>
+    </td>
 </tr>
 
-<tr class="action-row" data-id="<?= $p['id'] ?>">
-<td colspan="6">
-<button class="btn btn-edit"
-    data-id="<?= $p['id'] ?>"
-    data-id_producto="<?= $p['id_producto'] ?>"
-    data-producto="<?= htmlspecialchars($p['producto']) ?>"
-    data-descripcion="<?= htmlspecialchars($p['descripcion']) ?>"
-    data-cantidad="<?= $p['cantidad'] ?>"
-    data-precio="<?= $p['precio'] ?>"
-    data-categoria="<?= htmlspecialchars($p['categoria']) ?>"
-    data-stock="<?= $p['stock_inicial'] ?>"
-    data-codigo_barra="<?= htmlspecialchars($p['codigo_barra']) ?>"
->✏ Editar</button>
+<!-- FILA DATOS -->
+<tr data-id="<?= $p['id'] ?>">
+    <td><?= $p['id'] ?></td>
+    <td><?= htmlspecialchars($p['producto']) ?></td>
+    <td><?= htmlspecialchars($p['descripcion']) ?></td>
+    <td><?= $p['cantidad'] ?></td>
+    <td><?= number_format($p['precio'],2) ?></td>
+    
+</tr>
 
-<button class="btn btn-delete" style="background:#c0392b;" data-id="<?= $p['id'] ?>">🗑 Borrar</button>
-</td>
+<!-- FILA ACCIONES -->
+<tr class="action-row" data-id="<?= $p['id'] ?>">
+    <td colspan="6">
+        <button class="btn btn-edit"
+            data-id="<?= $p['id'] ?>"
+            data-id_producto="<?= $p['id_producto'] ?>"
+            data-producto="<?= htmlspecialchars($p['producto']) ?>"
+            data-descripcion="<?= htmlspecialchars($p['descripcion']) ?>"
+            data-cantidad="<?= $p['cantidad'] ?>"
+            data-precio="<?= $p['precio'] ?>"
+            data-categoria="<?= htmlspecialchars($p['categoria']) ?>"
+            data-stock="<?= $p['stock_inicial'] ?>"
+            data-codigo_barra="<?= htmlspecialchars($p['codigo_barra']) ?>"
+        >✏ Editar</button>
+
+        <button class="btn btn-delete" style="background:#c0392b;" data-id="<?= $p['id'] ?>">
+            🗑 Borrar
+        </button>
+    </td>
 </tr>
 
 <?php endwhile; ?>
 </tbody>
+
 </table>
 </div>
 
@@ -335,3 +391,5 @@ fileInput.addEventListener("change", async function () {
 });
 
 </script>
+
+

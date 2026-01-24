@@ -39,7 +39,7 @@ if($result){
 
     <div class="venta-header">
         <span><strong>Cliente / Código:</strong> <?= htmlspecialchars($venta['cliente']) ?></span>
-        <span><strong>Vendedor:</strong> <?= htmlspecialchars($venta['vendedor']) ?></span>
+        <span><strong>Vendedor : </strong> <?= htmlspecialchars($venta['vendedor']) ?></span>
     </div>
 
     <div class="venta-productos">

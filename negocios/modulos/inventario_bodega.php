@@ -162,13 +162,14 @@ td, th {
 <?php while($p=$query->fetch_assoc()): ?>
 
 <!-- FILA IMAGEN / TARJETA -->
-<tr class="row-card">
+<tr class="row-card" data-id="<?= $p['id'] ?>">
     <td colspan="6">
         <div class="card-img">
             <img src="<?= $p['img'] ?: $defaultImage ?>" alt="Producto">
         </div>
     </td>
 </tr>
+
 
 <!-- FILA DATOS -->
 <tr data-id="<?= $p['id'] ?>">
@@ -269,17 +270,24 @@ if(t.classList.contains('btn-delete')){
     }
 }
 });
+ 
+searchInput.addEventListener('input', e => {
+    const value = e.target.value.toLowerCase();
 
-searchInput.addEventListener('input', e=>{
-const value = e.target.value.toLowerCase();
-tbody.querySelectorAll("tr[data-id]").forEach(tr=>{
-    const nombre = tr.children[1].textContent.toLowerCase();
-    const show = nombre.includes(value);
-    tr.style.display = show ? "" : "none";
-    const action = tbody.querySelector(`tr.action-row[data-id='${tr.dataset.id}']`);
-    if(action) action.style.display = show ? "" : "none";
+    // Todas las filas con data-id (imagen, datos, acciones)
+    tbody.querySelectorAll("tr[data-id]").forEach(tr => {
+        const id = tr.dataset.id;
+        const dataRow = tbody.querySelector(`tr[data-id='${id}']:not(.row-card):not(.action-row)`);
+        const nombre = dataRow ? dataRow.children[1].textContent.toLowerCase() : '';
+        const mostrar = nombre.includes(value);
+
+        // Mostrar/ocultar todas las filas con ese data-id
+        tbody.querySelectorAll(`tr[data-id='${id}']`).forEach(r => r.style.display = mostrar ? '' : 'none');
+    });
 });
-});
+
+
+
 form.addEventListener('submit', e=>{
     e.preventDefault();
 

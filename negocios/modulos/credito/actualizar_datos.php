@@ -79,7 +79,10 @@ if (($saldo + $totalPedido) > $limite) {
             )
         ");
     }
+
 }
+
+
 
 /* ===================== MOVIMIENTO DE SALDO ===================== */
 if (isset($_POST['saldo'], $_POST['concepto'])) {

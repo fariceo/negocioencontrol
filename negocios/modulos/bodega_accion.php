@@ -192,7 +192,28 @@ try {
     $stmt->close();
     $conexion->commit();
 
-    echo json_encode(['ok'=>true,'msg'=>'Inventario guardado']);
+    // 🔹 Devolver datos completos del producto para poder agregarlo dinámicamente en la tabla
+$respuesta = [
+    'ok' => true,
+    'msg' => 'Inventario guardado',
+    'producto' => [
+        'id_bodega' => $id > 0 ? $id : $conexion->insert_id, // último insert si es nuevo
+        'id_producto' => $id_producto,
+        'producto' => $producto,
+        'descripcion' => $descripcion,
+        'cantidad' => $cantidad,
+        'precio' => $precio,
+        'categoria' => $categoria,
+        'stock_inicial' => $stockInicial,
+        'codigo_barra' => $codigo_barra,
+        'imagen' => $imgUrl ?? ''  // si no subió imagen se queda vacío
+    ]
+];
+
+echo json_encode($respuesta);
+
+
+
 
 } catch (Exception $e) {
     $conexion->rollback();

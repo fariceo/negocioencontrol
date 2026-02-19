@@ -12,20 +12,21 @@ $conexion = new mysqli("localhost", "root", "clave", $negocio);
 // --- Lista de módulos disponibles ---
 $modulos_disponibles = [
     ['modulo' => 'reporte_ventas', 'etiqueta' => 'Reporte de Ventas', 'icono' => 'fas fa-chart-line'],
-    ['modulo' => 'reporte_gastos', 'etiqueta' => 'Reporte de Gastos', 'icono' => 'fas fa-receipt'],
+    ['modulo' => 'compras', 'etiqueta' => 'Reporte de Gastos', 'icono' => 'fas fa-receipt'],
     ['modulo' => 'reporte_clientes', 'etiqueta' => 'Reporte de Clientes', 'icono' => 'fas fa-users'],
-    ['modulo' => 'pagos', 'etiqueta' => 'Pagos', 'icono' => 'fas fa-money-bill-wave'],
-    ['modulo' => 'fiados', 'etiqueta' => 'Fiados / Créditos', 'icono' => 'fas fa-hand-holding-usd']
+    ['modulo' => 'cobros', 'etiqueta' => 'Fiados / Créditos', 'icono' => 'fas fa-hand-holding-usd']
 ];
 
-// --- Peticiones AJAX ---
+// --- Peticiones AJAX --- 
 if (isset($_POST['accion'])) {
 
     // AGREGAR
     if ($_POST['accion'] === "agregar") {
 
         // guardamos la ruta absoluta del módulo en el servidor (no confiar ciegamente en lo enviado por el cliente)
-        $ruta = "/negocioencontrol/negocios/modulos/" . $_POST['modulo'] . ".php";
+        //$ruta = "/negocioencontrol/negocios/modulos/" . $_POST['modulo'] . ".php";
+        $ruta = $_POST['modulo'] . ".php";
+
 
         $sql = "INSERT IGNORE INTO ajustes_menu (modulo, etiqueta, icono, ruta, habilitado, orden)
                 SELECT ?, ?, ?, ?, 1, COALESCE(MAX(orden)+1,1) FROM ajustes_menu";

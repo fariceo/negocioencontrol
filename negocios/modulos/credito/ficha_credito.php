@@ -191,3 +191,77 @@ while ($row = $resVentas->fetch_assoc()) {
 .tabla-historial{width:100%;border-collapse:collapse}
 .tabla-historial td,th{border-bottom:1px solid #ddd;padding:5px}
 </style>
+
+
+<h3>🛒 Historial de compras</h3>
+
+<?php if (empty($ventasCredito)): ?>
+    <p style="font-size:14px;color:#777;">
+        Este cliente no registra compras a crédito.
+    </p>
+<?php else: ?>
+<table class="tabla-historial">
+    <tr>
+        <th>Fecha</th>
+        <th>Vendedor</th>
+        <th>Productos</th>
+        <th>Total</th>
+        <th>Método</th>
+    </tr>
+
+    <?php foreach ($ventasCredito as $v): ?>
+    <tr>
+        <td><?= $v['fecha_hora'] ?></td>
+        <td><?= htmlspecialchars($v['vendedor']) ?></td>
+        <td class="productos-cell">
+<?php
+$lista = json_decode($v['productos'], true);
+
+if (is_array($lista)):
+    foreach ($lista as $p):
+?>
+    <div class="producto-item">
+        <span class="producto-nombre"><?= htmlspecialchars($p['producto']) ?></span>
+        <span class="producto-detalle">
+            <?= $p['cantidad'] ?> × $<?= number_format($p['precio'],2) ?>
+        </span>
+    </div>
+<?php
+    endforeach;
+else:
+    echo htmlspecialchars($v['productos']);
+endif;
+?>
+</td>
+
+        <td>$<?= number_format($v['total'],2) ?></td>
+        <td><?= strtoupper($v['metodo_pago']) ?></td>
+    </tr>
+    <?php endforeach; ?>
+</table>
+<?php endif; ?>
+<style>.productos-cell {
+    font-size: 13px;
+    line-height: 1.3em;
+}
+
+.producto-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    border-bottom: 1px dashed #ddd;
+}
+
+.producto-item:last-child {
+    border-bottom: none;
+}
+
+.producto-nombre {
+    font-weight: 600;
+}
+
+.producto-detalle {
+    color: #555;
+    white-space: nowrap;
+}
+</style>

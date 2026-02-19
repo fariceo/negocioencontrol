@@ -44,16 +44,17 @@ $query = $stmt->get_result();
 }
 
 .card-img {
-    width: 100%;
-    max-height: 250px;      /* 👈 MUY compacta */
+    width: 200px;
+    max-height: 250px;
     overflow: hidden;
     border-radius: 6px;
-    margin: 4px 0;
+    margin: 10px auto; /* 👈 centra horizontalmente */
 }
 
+
 .card-img img {
-    width: 100%;
-    height: 250px;          /* 👈 altura fija pequeña */
+    width: 200px;
+    height: 300px;          /* 👈 altura fija pequeña */
     object-fit: cover;
     display: block;
 }
@@ -94,6 +95,59 @@ td, th {
 #img_modal { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); max-width:90%; max-height:90%; display:none; border:5px solid #fff; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,.5); z-index:99999; cursor:pointer; }
 #searchInput { margin-bottom:10px; padding:8px; width:100%; border-radius:5px; border:1px solid #ccc; }
 </style>
+
+<style>
+/* =========================
+   RESPONSIVE MOBILE
+   ========================= */
+@media (max-width: 768px) {
+
+    #bodega_wrap {
+        padding: 5px;
+    }
+
+    #bodega_wrap table {
+        font-size: 13px;
+    }
+
+    #bodega_wrap th,
+    #bodega_wrap td {
+        padding: 6px 4px;
+        font-size: 12px;
+    }
+
+    /* Imagen más pequeña en móvil */
+    .card-img {
+        width: 140px;
+        max-height: 180px;
+    }
+
+    .card-img img {
+        width: 140px;
+        height: 180px;
+    }
+
+    /* Botones más compactos */
+    #bodega_wrap .btn {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+
+    /* Permite scroll horizontal suave si hace falta */
+    #bodega_wrap table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    /* Ajuste del buscador */
+    #searchInput {
+        font-size: 14px;
+        padding: 6px;
+    }
+}
+
+    </style>
 
 <div id="bodega_wrap">
 <header>📦 Inventario de Bodega</header>
@@ -152,6 +206,7 @@ td, th {
 <tr>
     <th>ID</th>
     <th>Producto</th>
+     <th>Código</th> <!-- 👈 NUEVO -->
     <th>Descripción</th>
     <th>Cantidad</th>
     <th>Precio</th>
@@ -175,6 +230,7 @@ td, th {
 <tr data-id="<?= $p['id'] ?>">
     <td><?= $p['id'] ?></td>
     <td><?= htmlspecialchars($p['producto']) ?></td>
+    <td><?= htmlspecialchars($p['codigo_barra']) ?></td> <!-- 👈 NUEVO -->
     <td><?= htmlspecialchars($p['descripcion']) ?></td>
     <td><?= $p['cantidad'] ?></td>
     <td><?= number_format($p['precio'],2) ?></td>

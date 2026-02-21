@@ -91,38 +91,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 orden INT(0) DEFAULT 0
             ) ENGINE=InnoDB",
 
-            "bodega" => "CREATE TABLE IF NOT EXISTS bodega (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                negocio VARCHAR(100) NOT NULL,
-                producto VARCHAR(100) NOT NULL,
-                descripcion TEXT,
-                cantidad DECIMAL(10,2) DEFAULT 0,
-                precio DECIMAL(10,2) DEFAULT 0,
-                categoria VARCHAR(50),
-                stock_inicial INT DEFAULT 0,
-                fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE KEY (negocio, producto)
-            ) ENGINE=InnoDB",
-
             "productos" => "CREATE TABLE IF NOT EXISTS productos (
-                id_producto INT AUTO_INCREMENT PRIMARY KEY,
-                producto VARCHAR(100) NOT NULL,
-                precio DECIMAL(10,2) NOT NULL,
-                categoria VARCHAR(50),
-                stock_inicial INT DEFAULT 0,
-                imagen VARCHAR(255) DEFAULT '/negocioencontrol/negocios/modulos/assets/default.png'
-            ) ENGINE=InnoDB",
+    id_producto INT AUTO_INCREMENT PRIMARY KEY,
+    codigo_barra VARCHAR(50) UNIQUE,
+    producto VARCHAR(100) NOT NULL,
+    precio DECIMAL(10,2) NOT NULL,
+    categoria VARCHAR(50),
+    stock_inicial INT DEFAULT 0,
+    imagen VARCHAR(255) DEFAULT '/negocioencontrol/negocios/modulos/assets/default.png',
+    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB",
+
+          "bodega" => "CREATE TABLE IF NOT EXISTS bodega (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    negocio VARCHAR(100) NOT NULL,
+    id_producto INT NOT NULL,
+    descripcion TEXT,
+    cantidad DECIMAL(10,2) DEFAULT 0,
+    precio DECIMAL(10,2) DEFAULT 0,
+    categoria VARCHAR(50),
+    stock_inicial INT DEFAULT 0,
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY (negocio, id_producto),
+    FOREIGN KEY (id_producto) REFERENCES productos(id_producto)
+) ENGINE=InnoDB
+",
 
             "ventas" => "CREATE TABLE IF NOT EXISTS ventas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     negocio VARCHAR(100) NOT NULL,
     vendedor VARCHAR(100) NOT NULL,
-    cliente VARCHAR(100) NOT NULL,
+    cliente VARCHAR(100),
     productos JSON NOT NULL,
     total DECIMAL(10,2) NOT NULL,
     metodo_pago VARCHAR(50) NOT NULL,
     fecha_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
 
 
 	
@@ -135,16 +139,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ) ENGINE=InnoDB",
 
             // --- Nuevas tablas ---
-            "carrito" => "CREATE TABLE IF NOT EXISTS carrito (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                negocio VARCHAR(100) NOT NULL,
-                usuario VARCHAR(100) NOT NULL,
-                producto VARCHAR(100) NOT NULL,
-                precio DECIMAL(10,2) NOT NULL,
-                cantidad INT DEFAULT 1,
-                estado VARCHAR(100) NOT NULL,
-                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB",
+           "carrito" => "CREATE TABLE IF NOT EXISTS carrito (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    negocio VARCHAR(100) NOT NULL,
+    usuario VARCHAR(100) NOT NULL,
+    id_producto INT NOT NULL,
+    cantidad INT DEFAULT 1,
+    estado ENUM('pendiente','procesado') DEFAULT 'pendiente',,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_producto) REFERENCES productos(id_producto)
+) ENGINE=InnoDB",
 
             "gastos" => "CREATE TABLE IF NOT EXISTS gastos (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -193,15 +197,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // --- Copiar productos base ---
-        $conexionNegocio->query("INSERT IGNORE INTO productos (producto, precio, categoria, stock_inicial, imagen)
-                                SELECT producto, precio, categoria, stock_inicial, imagen
-                                FROM negocioencontrol.productos");
+        $conexionNegocio->query("INSERT IGNORE INTO productos (codigo_barra, producto, precio, categoria, stock_inicial, imagen)
+SELECT codigo_barra, producto, precio, categoria, stock_inicial, imagen
+FROM negocioencontrol.productos
+");
 
         // --- Insertar módulos iniciales ---
         $modulos_iniciales = [
             ['productos', 'Productos', 'fas fa-store', 'productos.php', 1, 1],
             ['ventas', 'Ventas', 'fas fa-cash-register', 'ventas.php', 1, 2],
-            ['bodega', 'Bodega', 'fas fa-warehouse', 'bodega.php', 1, 3],
+            ['bodega', 'Bodega', 'fas fa-warehouse', 'inventario_bodega.php', 1, 3],
             ['gastos', 'Gastos', 'fas fa-receipt', 'gastos.php', 1, 4],
         ];
 

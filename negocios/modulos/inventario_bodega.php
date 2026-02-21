@@ -44,19 +44,21 @@ $query = $stmt->get_result();
 }
 
 .card-img {
-    width: 200px;
-    max-height: 250px;
+    width: 100%;
+    display: flex;              /* 👈 activa centrado */
+    justify-content: center;    /* 👈 centra horizontal */
+    align-items: center;        /* 👈 centra vertical */
     overflow: hidden;
     border-radius: 6px;
-    margin: 10px auto; /* 👈 centra horizontalmente */
+    margin: 4px 0;
 }
 
-
 .card-img img {
-    width: 200px;
-    height: 300px;          /* 👈 altura fija pequeña */
+    width: 300px;
+    height: 250px;
     object-fit: cover;
     display: block;
+    border-radius: 10px; /* opcional para efecto tarjeta */
 }
 
 /* tabla limpia */
@@ -76,6 +78,81 @@ td, th {
     padding: 5px;
 }
 
+/* ===== CONVERTIR TABLA EN TARJETAS VISUALES ===== */
+
+#tbody_bodega tr {
+    border: none !important;
+}
+
+#tbody_bodega tr.row-card,
+#tbody_bodega tr[data-id],
+#tbody_bodega tr.action-row {
+    background: white;
+}
+
+#tbody_bodega tr.row-card td {
+    border: none;
+    padding: 0;
+}
+
+#tbody_bodega tr[data-id] td {
+    border: none;
+    padding: 6px 10px;
+    font-size: 14px;
+}
+
+#tbody_bodega tr.action-row td {
+    border: none;
+    padding: 10px;
+}
+
+/* Contenedor visual tipo tarjeta */
+#tbody_bodega tr.row-card td {
+    padding-top: 15px;
+}
+
+/* Espacio entre productos */
+#tbody_bodega tr.action-row {
+    border-bottom: 15px solid #f7f7f7;
+}
+
+/* Sombra tipo card */
+#tbody_bodega tr.row-card td,
+#tbody_bodega tr[data-id] td,
+#tbody_bodega tr.action-row td {
+    background: white;
+}
+
+#tbody_bodega tr.row-card {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    border-radius: 12px;
+}
+
+/* Redondear esquinas superiores */
+#tbody_bodega tr.row-card td:first-child {
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+
+/* Redondear esquinas inferiores */
+#tbody_bodega tr.action-row td {
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+/* Mejorar imagen */
+.card-img img {
+    border-radius: 12px 12px 0 0;
+}
+
+/* Mejorar botones */
+#bodega_wrap .btn {
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+#bodega_wrap .btn:hover {
+    transform: translateY(-1px);
+}
 </style>
 <style>
 #bodega_wrap * { box-sizing:border-box; }
@@ -95,59 +172,6 @@ td, th {
 #img_modal { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); max-width:90%; max-height:90%; display:none; border:5px solid #fff; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,.5); z-index:99999; cursor:pointer; }
 #searchInput { margin-bottom:10px; padding:8px; width:100%; border-radius:5px; border:1px solid #ccc; }
 </style>
-
-<style>
-/* =========================
-   RESPONSIVE MOBILE
-   ========================= */
-@media (max-width: 768px) {
-
-    #bodega_wrap {
-        padding: 5px;
-    }
-
-    #bodega_wrap table {
-        font-size: 13px;
-    }
-
-    #bodega_wrap th,
-    #bodega_wrap td {
-        padding: 6px 4px;
-        font-size: 12px;
-    }
-
-    /* Imagen más pequeña en móvil */
-    .card-img {
-        width: 140px;
-        max-height: 180px;
-    }
-
-    .card-img img {
-        width: 140px;
-        height: 180px;
-    }
-
-    /* Botones más compactos */
-    #bodega_wrap .btn {
-        padding: 6px 8px;
-        font-size: 12px;
-    }
-
-    /* Permite scroll horizontal suave si hace falta */
-    #bodega_wrap table {
-        display: block;
-        overflow-x: auto;
-        white-space: nowrap;
-    }
-
-    /* Ajuste del buscador */
-    #searchInput {
-        font-size: 14px;
-        padding: 6px;
-    }
-}
-
-    </style>
 
 <div id="bodega_wrap">
 <header>📦 Inventario de Bodega</header>
@@ -206,7 +230,6 @@ td, th {
 <tr>
     <th>ID</th>
     <th>Producto</th>
-     <th>Código</th> <!-- 👈 NUEVO -->
     <th>Descripción</th>
     <th>Cantidad</th>
     <th>Precio</th>
@@ -217,7 +240,7 @@ td, th {
 <?php while($p=$query->fetch_assoc()): ?>
 
 <!-- FILA IMAGEN / TARJETA -->
-<tr class="row-card" data-id="<?= $p['id'] ?>">
+<tr class="row-card">
     <td colspan="6">
         <div class="card-img">
             <img src="<?= $p['img'] ?: $defaultImage ?>" alt="Producto">
@@ -225,19 +248,20 @@ td, th {
     </td>
 </tr>
 
-
 <!-- FILA DATOS -->
 <tr data-id="<?= $p['id'] ?>">
     <td><?= $p['id'] ?></td>
-    <td><?= htmlspecialchars($p['producto']) ?></td>
-    <td><?= htmlspecialchars($p['codigo_barra']) ?></td> <!-- 👈 NUEVO -->
+    <td>
+        <strong><?= htmlspecialchars($p['producto']) ?></strong><br>
+        <small>Código: <?= htmlspecialchars($p['codigo_barra']) ?></small>
+    </td>
     <td><?= htmlspecialchars($p['descripcion']) ?></td>
     <td><?= $p['cantidad'] ?></td>
     <td><?= number_format($p['precio'],2) ?></td>
-    
 </tr>
 
 <!-- FILA ACCIONES -->
+
 <tr class="action-row" data-id="<?= $p['id'] ?>">
     <td colspan="6">
         <button class="btn btn-edit"
@@ -263,30 +287,30 @@ td, th {
 
 </table>
 </div>
-
 <script>
 (function(){
+
 const wrap = document.getElementById('bodega_wrap');
 const modal = wrap.querySelector("#modalForm_bodega");
 const form = wrap.querySelector("#formProducto_bodega");
 const tbody = wrap.querySelector("#tbody_bodega");
 const img_modal = document.getElementById('img_modal');
-const searchInput = document.getElementById('searchInput');
+const searchInput = wrap.querySelector('#searchInput');
 
 function showForm(){ modal.style.display='flex'; }
 function closeForm(){ modal.style.display='none'; form.reset(); }
+
 document.getElementById('btnNuevo').addEventListener('click',()=>{
     form.reset();
     wrap.querySelector("#idProducto_bodega").value = 0;
-    // Generar código automático
-    codigo_barra_bodega.value = Date.now(); // ejemplo: timestamp como código
+    codigo_barra_bodega.value = Date.now();
     showForm();
 });
 
 document.getElementById('btnCerrar').addEventListener('click',closeForm);
 
 tbody.addEventListener('click', e=>{
-    if(e.target.classList.contains('img-card')){
+    if(e.target.tagName === "IMG"){
         img_modal.src = e.target.src;
         img_modal.style.display='block';
     }
@@ -302,12 +326,11 @@ if(t.classList.contains('btn-edit')){
     producto_bodega.value = t.dataset.producto;
     descripcion_bodega.value = t.dataset.descripcion;
     cantidad_bodega.value = t.dataset.cantidad;
-    precio_bodega.value = t.dataset.precio; // float incluido
+    precio_bodega.value = t.dataset.precio;
     categoria_bodega.value = t.dataset.categoria;
     stock_inicial_bodega.value = t.dataset.stock;
     codigo_barra_bodega.value = t.dataset.codigo_barra || '';
 }
-
 
 if(t.classList.contains('btn-delete')){
     if(confirm('¿Eliminar este registro?')){
@@ -319,31 +342,86 @@ if(t.classList.contains('btn-delete')){
         .then(r=>r.json())
         .then(resp=>{
             if(resp.ok){
-                tbody.querySelector(`tr[data-id='${t.dataset.id}']`).remove();
-                tbody.querySelector(`tr.action-row[data-id='${t.dataset.id}']`).remove();
-            } else alert(resp.msg);
+                const row = tbody.querySelector(`tr[data-id='${t.dataset.id}']`);
+                const actionRow = tbody.querySelector(`tr.action-row[data-id='${t.dataset.id}']`);
+                const imgRow = row ? row.previousElementSibling : null;
+
+                if(imgRow) imgRow.remove();
+                if(row) row.remove();
+                if(actionRow) actionRow.remove();
+            } else {
+                alert(resp.msg);
+            }
         });
     }
 }
 });
- 
-searchInput.addEventListener('input', e => {
-    const value = e.target.value.toLowerCase();
 
-    // Todas las filas con data-id (imagen, datos, acciones)
-    tbody.querySelectorAll("tr[data-id]").forEach(tr => {
-        const id = tr.dataset.id;
-        const dataRow = tbody.querySelector(`tr[data-id='${id}']:not(.row-card):not(.action-row)`);
-        const nombre = dataRow ? dataRow.children[1].textContent.toLowerCase() : '';
-        const mostrar = nombre.includes(value);
+let timeout = null;
 
-        // Mostrar/ocultar todas las filas con ese data-id
-        tbody.querySelectorAll(`tr[data-id='${id}']`).forEach(r => r.style.display = mostrar ? '' : 'none');
-    });
+searchInput.addEventListener('input', e=>{
+    clearTimeout(timeout);
+    const value = e.target.value.trim();
+
+    timeout = setTimeout(()=>{
+        fetch(`/negocioencontrol/negocios/modulos/bodega_accion.php?buscar=${encodeURIComponent(value)}`)
+        .then(res=>res.json())
+        .then(resp=>{
+            if(!resp.ok) return;
+
+            tbody.innerHTML = "";
+
+            resp.data.forEach(item=>{
+
+                const imgRow = `
+                <tr class="row-card">
+                    <td colspan="6">
+                        <div class="card-img">
+                            <img src="${item.img || '<?= $defaultImage ?>'}">
+                        </div>
+                    </td>
+                </tr>`;
+
+                const dataRow = `
+                <tr data-id="${item.id}">
+                    <td>${item.id}</td>
+                    <td>${item.producto}</td>
+                    <td>${item.descripcion || ''}</td>
+                    <td>${item.cantidad}</td>
+                    <td>${parseFloat(item.precio).toFixed(2)}</td>
+                </tr>`;
+
+                const actionRow = `
+                <tr class="action-row" data-id="${item.id}">
+                    <td colspan="6">
+                        <button class="btn btn-edit"
+                            data-id="${item.id}"
+                            data-id_producto="${item.id_producto}"
+                            data-producto="${item.producto}"
+                            data-descripcion="${item.descripcion || ''}"
+                            data-cantidad="${item.cantidad}"
+                            data-precio="${item.precio}"
+                            data-categoria="${item.categoria || ''}"
+                            data-stock="${item.stock_inicial || 0}"
+                            data-codigo_barra="${item.codigo_barra || ''}"
+                        >✏ Editar</button>
+
+                        <button class="btn btn-delete" style="background:#c0392b;" data-id="${item.id}">
+                            🗑 Borrar
+                        </button>
+                    </td>
+                </tr>`;
+
+                tbody.innerHTML += imgRow + dataRow + actionRow;
+            });
+        });
+    }, 300);
 });
 
 
-
+/* =========================
+   SUBMIT CORREGIDO
+   ========================= */
 form.addEventListener('submit', e=>{
     e.preventDefault();
 
@@ -352,20 +430,19 @@ form.addEventListener('submit', e=>{
         body:new FormData(form)
     })
     .then(r=>r.json())
-  .then(resp=>{
-    alert(resp.msg);
-    if(!resp.ok) return;
+    .then(resp=>{
+        alert(resp.msg);
+        if(!resp.ok) return;
 
-    const imagenInput = document.getElementById("imagen_bodega");
-    const imagenActualizada = imagenInput.files.length > 0;
-
+        const imagenInput = document.getElementById("imagen_bodega");
+        const imagenActualizada = imagenInput.files.length > 0;
         const id = idProducto_bodega.value;
 
         let row = tbody.querySelector(`tr[data-id='${id}']`);
         let actionRow = tbody.querySelector(`tr.action-row[data-id='${id}']`);
 
-        // 🟢 SI ES EDICIÓN
         if(row && actionRow){
+
             row.children[1].textContent = producto_bodega.value;
             row.children[2].textContent = descripcion_bodega.value;
             row.children[3].textContent = cantidad_bodega.value;
@@ -380,15 +457,15 @@ form.addEventListener('submit', e=>{
             btnEdit.dataset.stock = stock_inicial_bodega.value;
             btnEdit.dataset.codigo_barra = codigo_barra_bodega.value;
 
-                // 🔁 ACTUALIZAR IMAGEN SIN RECARGAR (SI SE CAMBIÓ)
-    if(imagenActualizada){
-        const img = row.querySelector("img");
-        img.src = img.src.split("?")[0] + "?v=" + Date.now();
+       if(imagenActualizada && resp.img){
+    const imgRow = row.previousElementSibling;
+    if(imgRow && imgRow.classList.contains("row-card")){
+        const img = imgRow.querySelector("img");
+        img.src = resp.img;
     }
-
+}
 
         } else {
-            // 🟢 SI ES NUEVO → recarga ligera (opcional)
             location.reload();
         }
 
@@ -397,63 +474,4 @@ form.addEventListener('submit', e=>{
 });
 
 })();
-
-// === COMPRESOR AUTOMÁTICO PARA IMÁGENES (MISMO QUE VERSIÓN VIEJA) ===
-const fileInput = document.getElementById("imagen_bodega");
-
-function compressImage(file, quality = 0.7) {
-    return new Promise(resolve => {
-        const reader = new FileReader();
-        reader.onload = event => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement("canvas");
-                const ctx = canvas.getContext("2d");
-
-                let w = img.width;
-                let h = img.height;
-                const MAX = 1200;
-
-                if (w > MAX || h > MAX) {
-                    if (w > h) {
-                        h *= MAX / w;
-                        w = MAX;
-                    } else {
-                        w *= MAX / h;
-                        h = MAX;
-                    }
-                }
-
-                canvas.width = w;
-                canvas.height = h;
-                ctx.drawImage(img, 0, 0, w, h);
-
-                canvas.toBlob(
-                    blob => resolve(blob),
-                    "image/jpeg",
-                    quality
-                );
-            };
-            img.src = event.target.result;
-        };
-        reader.readAsDataURL(file);
-    });
-}
-
-fileInput.addEventListener("change", async function () {
-    const file = this.files[0];
-    if (!file) return;
-
-    const compressedBlob = await compressImage(file, 0.7);
-    const newFile = new File([compressedBlob], "foto.jpg", { type: "image/jpeg" });
-
-    const dt = new DataTransfer();
-    dt.items.add(newFile);
-    fileInput.files = dt.files;
-
-    console.log("Imagen comprimida y lista:", newFile);
-});
-
 </script>
-
-

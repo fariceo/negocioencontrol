@@ -88,7 +88,7 @@ if (isset($_POST['buscar_bodega'])) {
             <tr class="row-card">
                 <td colspan="6">
                     <div class="card-img">
-                        <img src="<?= $p['img'] ?: $defaultImage ?>" alt="Producto">
+                        <img class="img-card" src="<?= $p['img'] ?: $defaultImage ?>" alt="Producto">
                     </div>
                 </td>
             </tr>

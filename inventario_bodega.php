@@ -165,7 +165,7 @@ td, th {
 <tr class="row-card">
     <td colspan="6">
         <div class="card-img">
-            <img src="<?= $p['img'] ?: $defaultImage ?>" alt="Producto">
+         <img class="img-card" src="<?= $p['img'] ?: $defaultImage ?>" alt="Producto">
         </div>
     </td>
 </tr>
@@ -253,18 +253,51 @@ if(t.classList.contains('btn-edit')){
 
 
 if(t.classList.contains('btn-delete')){
+    const id = t.dataset.id;
+
     if(confirm('¿Eliminar este registro?')){
         fetch("/negocioencontrol/negocios/modulos/bodega_accion.php",{
             method:'POST',
             headers:{'Content-Type':'application/x-www-form-urlencoded'},
-            body:`eliminar=1&id=${t.dataset.id}`
+            body:`eliminar=1&id=${encodeURIComponent(id)}`
         })
         .then(r=>r.json())
         .then(resp=>{
             if(resp.ok){
-                tbody.querySelector(`tr[data-id='${t.dataset.id}']`).remove();
-                tbody.querySelector(`tr.action-row[data-id='${t.dataset.id}']`).remove();
-            } else alert(resp.msg);
+
+                // fila de datos
+                const rowData = tbody.querySelector(`tr[data-id='${id}']`);
+
+                // fila de acciones
+                const rowAction = tbody.querySelector(`tr.action-row[data-id='${id}']`);
+
+                // fila de imagen = la fila anterior a la de datos
+                const rowImage = rowData ? rowData.previousElementSibling : null;
+
+                // eliminar visualmente sin recargar
+                if(rowImage && rowImage.classList.contains('row-card')) rowImage.remove();
+                if(rowData) rowData.remove();
+                if(rowAction) rowAction.remove();
+
+                // si ya no quedan productos, mostrar mensaje
+                const quedanFilas = tbody.querySelectorAll("tr[data-id]").length;
+                if(quedanFilas === 0){
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" style="text-align:center; padding:20px;">
+                                No se encontraron productos
+                            </td>
+                        </tr>
+                    `;
+                }
+
+            } else {
+                alert(resp.msg || 'No se pudo eliminar');
+            }
+        })
+        .catch(err=>{
+            console.error("Error al eliminar:", err);
+            alert("Ocurrió un error al eliminar el producto");
         });
     }
 }
@@ -322,10 +355,15 @@ form.addEventListener('submit', e=>{
             btnEdit.dataset.codigo_barra = codigo_barra_bodega.value;
 
                 // 🔁 ACTUALIZAR IMAGEN SIN RECARGAR (SI SE CAMBIÓ)
-    if(imagenActualizada){
-        const img = row.querySelector("img");
+   if(imagenActualizada){
+    const rowImage = row.previousElementSibling;
+    const img = rowImage ? rowImage.querySelector("img") : null;
+    
+
+    if(img){
         img.src = img.src.split("?")[0] + "?v=" + Date.now();
     }
+}
 
 
         } else {

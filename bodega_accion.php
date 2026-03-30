@@ -43,6 +43,7 @@ if (isset($_POST['buscar_bodega'])) {
                 b.precio,
                 b.categoria,
                 b.stock_inicial,
+                b.fecha_registro,
                 COALESCE(p.imagen,'') AS img
             FROM bodega b
             INNER JOIN productos p ON p.id_producto = b.id_producto

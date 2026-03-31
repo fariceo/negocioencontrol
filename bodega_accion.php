@@ -70,6 +70,7 @@ if (isset($_POST['buscar_bodega'])) {
                 b.precio,
                 b.categoria,
                 b.stock_inicial,
+                b.fecha_registro,
                 COALESCE(p.imagen,'') AS img
             FROM bodega b
             INNER JOIN productos p ON p.id_producto = b.id_producto
@@ -89,7 +90,21 @@ if (isset($_POST['buscar_bodega'])) {
             <tr class="row-card">
                 <td colspan="6">
                     <div class="card-img">
-                        <img class="img-card" src="<?= $p['img'] ?: $defaultImage ?>" alt="Producto">
+                        <img 
+                            class="img-card"
+                            src="<?= $p['img'] ?: $defaultImage ?>" 
+                            alt="Producto"
+                            data-id="<?= $p['id'] ?>"
+                            data-id_producto="<?= $p['id_producto'] ?>"
+                            data-producto="<?= htmlspecialchars($p['producto']) ?>"
+                            data-descripcion="<?= htmlspecialchars($p['descripcion']) ?>"
+                            data-cantidad="<?= htmlspecialchars($p['cantidad']) ?>"
+                            data-precio="<?= number_format($p['precio'],2) ?>"
+                            data-categoria="<?= htmlspecialchars($p['categoria']) ?>"
+                            data-codigo="<?= htmlspecialchars($p['codigo_barra']) ?>"
+                            data-stock="<?= htmlspecialchars($p['stock_inicial']) ?>"
+                            data-fecha="<?= htmlspecialchars($p['fecha_registro']) ?>"
+                        >
                     </div>
                 </td>
             </tr>
@@ -210,10 +225,10 @@ $id_producto  = intval($_POST['id_producto'] ?? 0);
 $producto     = trim($_POST['producto'] ?? '');
 $codigo_barra = trim($_POST['codigo_barra'] ?? '');
 $descripcion  = $_POST['descripcion'] ?? '';
-$cantidad     = floatval($_POST['cantidad']);
-$precio       = floatval($_POST['precio']);
+$cantidad     = floatval($_POST['cantidad'] ?? 0);
+$precio       = floatval($_POST['precio'] ?? 0);
 $categoria    = $_POST['categoria'] ?? '';
-$stockInicial = floatval($_POST['stock_inicial']);
+$stockInicial = floatval($_POST['stock_inicial'] ?? 0);
 
 $conexion->begin_transaction();
 
@@ -228,7 +243,7 @@ try {
             INSERT INTO productos (codigo_barra, producto, precio, categoria, stock_inicial)
             VALUES (?, ?, ?, ?, ?)
         ");
-        $stmt->bind_param("sssdi", $codigo_barra, $producto, $precio, $categoria, $stockInicial);
+        $stmt->bind_param("ssdsd", $codigo_barra, $producto, $precio, $categoria, $stockInicial);
         $stmt->execute();
         $id_producto = $stmt->insert_id;
         $stmt->close();
@@ -241,7 +256,7 @@ try {
             codigo_barra=?, producto=?, precio=?, categoria=?, stock_inicial=?
             WHERE id_producto=?
         ");
-        $stmt->bind_param("ssdssi", $codigo_barra, $producto, $precio, $categoria, $stockInicial, $id_producto);
+        $stmt->bind_param("ssdsdi", $codigo_barra, $producto, $precio, $categoria, $stockInicial, $id_producto);
         $stmt->execute();
         $stmt->close();
     }
@@ -273,7 +288,7 @@ try {
             descripcion=?, cantidad=?, precio=?, categoria=?, stock_inicial=?
             WHERE id=? AND negocio=?
         ");
-        $stmt->bind_param("sdddis",
+        $stmt->bind_param("sddsdis",
             $descripcion,
             $cantidad,
             $precio,
@@ -288,7 +303,7 @@ try {
             (negocio, id_producto, descripcion, cantidad, precio, categoria, stock_inicial, fecha_registro)
             VALUES (?,?,?,?,?,?,?,NOW())
         ");
-        $stmt->bind_param("sisddds",
+        $stmt->bind_param("sisddsd",
             $negocio,
             $id_producto,
             $descripcion,
@@ -304,7 +319,6 @@ try {
     $conexion->commit();
 
     echo json_encode(['ok'=>true,'msg'=>'Inventario guardado']);
-
 } catch (Exception $e) {
     $conexion->rollback();
     echo json_encode(['ok'=>false,'msg'=>'Error: '.$e->getMessage()]);

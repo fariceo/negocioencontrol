@@ -457,7 +457,7 @@ tr[data-id] td:nth-child(2) {
                     <h2 id="modal_producto">Producto</h2>
                     <small id="modal_fecha">Fecha: -</small>
                 </div>
-                <button id="btnEditarDesdeModal" class="btn-edit-modal">✏ Editar</button>
+           
             </div>
 
             <div class="modal-grid-detalles">
@@ -597,7 +597,7 @@ tr[data-id] td:nth-child(2) {
     const img_modal = document.getElementById('img_modal');
     const img_modal_overlay = document.getElementById('img_modal_overlay');
     const cerrar_img_modal = document.getElementById('cerrar_img_modal');
-    const btnEditarDesdeModal = document.getElementById('btnEditarDesdeModal');
+   
 
     const modal_producto = document.getElementById('modal_producto');
     const modal_fecha = document.getElementById('modal_fecha');
@@ -685,15 +685,7 @@ tr[data-id] td:nth-child(2) {
 
         dibujarBarcodeSimple(img.dataset.codigo || '');
 
-        btnEditarDesdeModal.dataset.id = img.dataset.id || '';
-        btnEditarDesdeModal.dataset.id_producto = img.dataset.id_producto || '';
-        btnEditarDesdeModal.dataset.producto = img.dataset.producto || '';
-        btnEditarDesdeModal.dataset.descripcion = img.dataset.descripcion || '';
-        btnEditarDesdeModal.dataset.cantidad = img.dataset.cantidad || '';
-        btnEditarDesdeModal.dataset.precio = img.dataset.precio || '';
-        btnEditarDesdeModal.dataset.categoria = img.dataset.categoria || '';
-        btnEditarDesdeModal.dataset.stock = img.dataset.stock || '';
-        btnEditarDesdeModal.dataset.codigo_barra = img.dataset.codigo || '';
+      
 
         img_modal_overlay.style.display = 'flex';
     }

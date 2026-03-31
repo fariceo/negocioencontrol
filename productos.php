@@ -8,7 +8,7 @@ if (!isset($_SESSION['nombre_bd_negocio'])) {
     echo "<p style='color:red; text-align:center;'>Sesión expirada. Inicia sesión nuevamente.</p>";
     exit;
 }
-
+//
 $db = new Conexion();
 $conexion = $db->negocio($_SESSION['nombre_bd_negocio']);
 $usuario = $_SESSION['usuario'] ?? 'default_user';

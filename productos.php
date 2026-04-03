@@ -97,7 +97,22 @@ button.agregar:hover {background:#1e8449;}
     <div id="cobroForm" style="padding:15px; border-top:1px solid #ddd;">
         <label>Nombre del cliente:</label>
         <input type="text" id="nombreCliente" placeholder="Ej: Juan Pérez" style="width:100%; padding:6px; margin-bottom:8px; border:1px solid #ccc; border-radius:4px;">
+<label>Tipo de identificación:</label>
+<select id="tipoIdentificacion" style="width:100%; padding:6px; margin-bottom:8px; border:1px solid #ccc; border-radius:4px;">
+    <option value="05">Cédula</option>
+    <option value="04">RUC</option>
+    <option value="06">Pasaporte</option>
+    <option value="07">Consumidor Final</option>
+</select>
 
+<label>Número de identificación:</label>
+<input type="text" id="identificacionCliente" placeholder="Ej: 0912345678" style="width:100%; padding:6px; margin-bottom:8px; border:1px solid #ccc; border-radius:4px;">
+
+<label>Dirección (opcional):</label>
+<input type="text" id="direccionCliente" placeholder="Ej: Av. Principal y Calle 2" style="width:100%; padding:6px; margin-bottom:8px; border:1px solid #ccc; border-radius:4px;">
+
+<label>Teléfono (opcional):</label>
+<input type="text" id="telefonoCliente" placeholder="Ej: 0999999999" style="width:100%; padding:6px; margin-bottom:8px; border:1px solid #ccc; border-radius:4px;">
         <label>Correo (opcional):</label>
         <input type="email" id="correoCliente" placeholder="cliente@correo.com" style="width:100%; padding:6px; margin-bottom:8px; border:1px solid #ccc; border-radius:4px;">
 
@@ -205,43 +220,119 @@ button.agregar:hover {background:#1e8449;}
         }
     });
 
-    // Cobrar
-    document.getElementById('btnCobrar').addEventListener('click', ()=>{
-        const nombreCliente = document.getElementById('nombreCliente').value.trim();
-        const correo = document.getElementById('correoCliente').value.trim();
-        const metodo_pago = document.querySelector('input[name="metodoPago"]:checked').value;
+   // Cobrar
+document.getElementById('btnCobrar').addEventListener('click', ()=>{
+    const nombreCliente = document.getElementById('nombreCliente').value.trim();
+    const tipo_identificacion = document.getElementById('tipoIdentificacion')?.value || '07';
+    const identificacion = document.getElementById('identificacionCliente')?.value.trim() || '';
+    const correo = document.getElementById('correoCliente').value.trim();
+    const direccion = document.getElementById('direccionCliente')?.value.trim() || '';
+    const telefono = document.getElementById('telefonoCliente')?.value.trim() || '';
+    const metodo_pago = document.querySelector('input[name="metodoPago"]:checked').value;
 
-        if(!nombreCliente){ alert('Ingrese nombre del cliente'); return; }
+    if(!nombreCliente){
+        alert('Ingrese nombre del cliente');
+        return;
+    }
 
-        fetch('/negocioencontrol/negocios/modulos/cargar_carrito.php?accion=cargar')
+    if(tipo_identificacion !== '07' && !identificacion){
+        alert('Ingrese la identificación del cliente');
+        return;
+    }
+
+    fetch('/negocioencontrol/negocios/modulos/cargar_carrito.php?accion=cargar')
+    .then(res=>res.json())
+    .then(carrito=>{
+        if(!Array.isArray(carrito) || carrito.length===0){
+            alert('El carrito está vacío');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('nombreCliente', nombreCliente);
+        formData.append('correo', correo);
+        formData.append('telefono', telefono);
+        formData.append('direccion', direccion);
+        formData.append('metodo_pago', metodo_pago);
+        formData.append('carrito', JSON.stringify(carrito));
+
+        fetch('/negocioencontrol/negocios/modulos/cobrar_carrito.php', {
+            method:'POST',
+            body: formData
+        })
         .then(res=>res.json())
-        .then(carrito=>{
-            if(!Array.isArray(carrito) || carrito.length===0){
-                alert('El carrito está vacío');
-                return;
-            }
+        .then(data=>{
+            if(data.ok){
+                const idVenta = data.id_venta;
 
-            const formData = new FormData();
-            formData.append('nombreCliente', nombreCliente);
-            formData.append('correo', correo);
-            formData.append('metodo_pago', metodo_pago);
-            formData.append('carrito', JSON.stringify(carrito));
+                const emitir = confirm(`✅ Venta registrada\nID Venta: ${idVenta}\n\n¿Desea registrar factura para el SRI?`);
 
-            fetch('/negocioencontrol/negocios/modulos/cobrar_carrito.php', {method:'POST', body: formData})
-            .then(res=>res.json())
-            .then(data=>{
-                if(data.ok){
-                    alert(`✅ Venta registrada\nCódigo: ${data.codigo_compra}`);
-                    actualizarCarrito();
-                    document.getElementById('nombreCliente').value='';
-                    document.getElementById('correoCliente').value='';
-                }else{
-                    alert("⚠️ "+data.mensaje);
+                if(emitir){
+                    const formFactura = new FormData();
+                    formFactura.append('id_venta', idVenta);
+                    formFactura.append('cliente_nombre', nombreCliente);
+                    formFactura.append('cliente_identificacion', identificacion);
+                    formFactura.append('tipo_identificacion', tipo_identificacion);
+                    formFactura.append('correo', correo);
+                    formFactura.append('direccion', direccion);
+                    formFactura.append('telefono', telefono);
+                    formFactura.append('metodo_pago', metodo_pago);
+
+                    fetch('/negocioencontrol/negocios/modulos/factura_sri.php', {
+                        method: 'POST',
+                        body: formFactura
+                    })
+                    .then(res => res.json())
+                    .then(respFactura => {
+    console.log("RESPUESTA FACTURA SRI:", respFactura);
+
+    if(respFactura.ok){
+alert(
+`🧾 Factura registrada correctamente
+Factura ID: ${respFactura.id_factura}
+Código: ${respFactura.codigo_compra}
+Total: $${respFactura.total}
+Estado SRI: pendiente
+Ambiente: pruebas`
+);    } else {
+        alert(
+            "⚠️ No se pudo registrar la factura:\n" +
+            (respFactura.mensaje || 'Error desconocido') +
+            (respFactura.error ? "\n\nDetalle técnico:\n" + respFactura.error : "") +
+            (respFactura.debug ? "\n\nDebug:\n" + JSON.stringify(respFactura.debug, null, 2) : "")
+        );
+    }
+})
+.catch(err => {
+    console.error("ERROR FETCH FACTURA:", err);
+    alert("Error al registrar la factura SRI");
+});
                 }
-            }).catch(err=>{ console.error(err); alert("Error al procesar la venta"); });
+
+                actualizarCarrito();
+                document.getElementById('nombreCliente').value = '';
+                document.getElementById('correoCliente').value = '';
+
+                if(document.getElementById('identificacionCliente')){
+                    document.getElementById('identificacionCliente').value = '';
+                }
+                if(document.getElementById('direccionCliente')){
+                    document.getElementById('direccionCliente').value = '';
+                }
+                if(document.getElementById('telefonoCliente')){
+                    document.getElementById('telefonoCliente').value = '';
+                }
+
+            }else{
+                alert("⚠️ " + data.mensaje);
+            }
+        })
+        .catch(err=>{
+            console.error(err);
+            alert("Error al procesar la venta");
         });
     });
-
+});
     // Buscador
     document.getElementById('buscador').addEventListener('input', ()=>{
         const filtro = document.getElementById('buscador').value.toLowerCase();

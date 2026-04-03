@@ -13,79 +13,130 @@ $conexion = $db->negocio($_SESSION['nombre_bd_negocio']);
 
 <style>
 .compras-wrapper {
-    background: linear-gradient(135deg, #eef2f3 0%, #dfe9f3 100%);
-    padding: 25px;
-    border-radius: 12px;
+    background: linear-gradient(145deg, #f9fafb 0%, #e5e7eb 100%);
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+    max-width: 950px;
+    margin: auto;
 }
-.card-modern { border-radius: 14px; border: none; overflow:hidden; }
+
+.card-modern {
+    border-radius: 20px;
+    border: none;
+    overflow: hidden;
+    transition: transform 0.25s, box-shadow 0.25s;
+}
+
+.card-modern:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+}
+
 .card-modern .card-header {
-    background: linear-gradient(135deg, #2563eb, #1e40af); /* azul intenso */
-    padding: 18px;
-    font-size: 1.4rem;
-    letter-spacing: 0.5px;
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+    padding: 22px;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    text-align: center;
+    color: #ffffff;
+    border-bottom: 1px solid rgba(255,255,255,0.15);
 }
-#btnMostrarGastos { padding:12px 18px; font-size:1.1rem; border-radius:10px; }
-.gasto-card { transition: .2s; border-radius:14px; }
-.gasto-card:hover { transform:translateY(-4px); box-shadow:0 10px 25px rgba(0,0,0,.15); }
 
+.card-modern .card-header div {
+    font-size: 0.95rem;
+    opacity: 0.8;
+    margin-top: 6px;
+}
 
+#btnMostrarGastos {
+    padding: 14px 24px;
+    font-size: 1.15rem;
+    border-radius: 14px;
+    transition: all 0.25s;
+    box-shadow: 0 5px 15px rgba(37, 99, 235, 0.25);
+}
 
-/* === FORMULARIO BONITO === */
+#btnMostrarGastos:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(37, 99, 235, 0.35);
+}
+/* === FORMULARIO MODERNO === */
 #formGasto {
     background: #ffffff;
-    padding: 30px 35px;
-    border-radius: 18px;
-    box-shadow: 0 15px 35px rgba(0,0,0,.08);
+    padding: 45px 40px;
+    border-radius: 25px;
+    box-shadow: 0 20px 45px rgba(0,0,0,0.08);
+    max-width: 700px;
+    margin: auto;
+    transition: all 0.3s;
 }
 
-/* Espaciado uniforme */
+#formGasto:hover {
+    box-shadow: 0 25px 60px rgba(0,0,0,0.12);
+}
+
 #formGasto .mb-4 {
     margin-bottom: 1.8rem !important;
 }
 
-/* Labels */
 #formGasto label {
-    font-size: 0.95rem;
-    color: #334155;
-    margin-bottom: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+    display: block;
+    margin-bottom: 8px;
 }
 
-/* Inputs */
 #formGasto input,
 #formGasto select,
 #formGasto textarea {
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
-    padding: 14px;
-    transition: all .2s ease;
+    width: 100%;
+    border-radius: 16px;
+    border: 1px solid #cbd5e1;
+    padding: 14px 16px;
+    font-size: 1rem;
+    color: #1e293b;
+    transition: all 0.3s ease;
+    text-align: left;
 }
 
-/* Focus bonito */
 #formGasto input:focus,
 #formGasto select:focus,
 #formGasto textarea:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    outline: none;
 }
 
-/* Textarea más cómoda */
 #formGasto textarea {
     resize: none;
+    min-height: 80px;
 }
 
-/* Botón principal */
 #formGasto button {
-    border-radius: 14px;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #ffffff;
+    border: none;
+    border-radius: 20px;
+    font-size: 1.15rem;
     font-weight: 600;
-    letter-spacing: .3px;
+    padding: 14px 50px;
+    cursor: pointer;
+    transition: all 0.25s;
+    box-shadow: 0 8px 25px rgba(34,197,94,0.25);
 }
 
 #formGasto button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 12px 30px rgba(34,197,94,.35);
+    box-shadow: 0 14px 35px rgba(34,197,94,0.45);
 }
 
-
+/* Inputs centrados para números */
+#formGasto input[type="number"] {
+    text-align: center;
+}
 </style>
 
 <div class="compras-wrapper container mt-3">

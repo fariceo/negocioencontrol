@@ -23,53 +23,161 @@ $storage = new StorageClient([
 $bucket = $storage->bucket($bucketName);
 
 /* =========================
-   BUSCAR
+   BUSCAR PRODUCTOS (AJAX)
    ========================= */
-if (isset($_GET['buscar'])) {
+if (isset($_POST['buscar_bodega'])) {
+    $buscar = trim($_POST['buscar_bodega']);
+    $defaultImage = "/negocioencontrol/negocios/modulos/assets/default.png";
 
-    $buscar = $conexion->real_escape_string($_GET['buscar'])."%";
+    if ($buscar !== '') {
+        $like = "%".$buscar."%";
 
-    $stmt = $conexion->prepare("
-        SELECT 
-            b.id,
-            b.descripcion,
-            b.cantidad,
-            b.precio,
-            p.producto,
-            p.codigo_barra,
-            COALESCE(p.imagen,'') AS img,
-            p.id_producto
-        FROM bodega b
-        INNER JOIN productos p ON p.id_producto = b.id_producto
-        WHERE b.negocio=? 
-        AND (
-            p.producto LIKE ?
-            OR p.codigo_barra = ?
-        )
-        ORDER BY b.id DESC
-        LIMIT 100
-    ");
-
-    $stmt->bind_param("sss", $negocio, $buscar, $_GET['buscar']);
-    $stmt->execute();
-    $res = $stmt->get_result();
-
-    $data = [];
-    while ($row = $res->fetch_assoc()) {
-        $data[] = $row;
+        $stmt = $conexion->prepare("
+            SELECT 
+                b.id,
+                b.id_producto,
+                p.producto,
+                p.codigo_barra,
+                b.descripcion,
+                b.cantidad,
+                b.precio,
+                b.categoria,
+                b.stock_inicial,
+                b.fecha_registro,
+                COALESCE(p.imagen,'') AS img
+            FROM bodega b
+            INNER JOIN productos p ON p.id_producto = b.id_producto
+            WHERE b.negocio = ?
+            AND (
+                p.producto LIKE ?
+                OR p.codigo_barra LIKE ?
+                OR b.descripcion LIKE ?
+                OR b.categoria LIKE ?
+                OR CAST(b.id AS CHAR) LIKE ?
+            )
+            ORDER BY p.producto ASC
+        ");
+        $stmt->bind_param("ssssss", $negocio, $like, $like, $like, $like, $like);
+    } else {
+        $stmt = $conexion->prepare("
+            SELECT 
+                b.id,
+                b.id_producto,
+                p.producto,
+                p.codigo_barra,
+                b.descripcion,
+                b.cantidad,
+                b.precio,
+                b.categoria,
+                b.stock_inicial,
+                b.fecha_registro,
+                COALESCE(p.imagen,'') AS img
+            FROM bodega b
+            INNER JOIN productos p ON p.id_producto = b.id_producto
+            WHERE b.negocio = ?
+            ORDER BY p.producto ASC
+        ");
+        $stmt->bind_param("s", $negocio);
     }
 
-    echo json_encode(['ok'=>true,'data'=>$data]);
+    $stmt->execute();
+    $query = $stmt->get_result();
+
+    if ($query->num_rows > 0) {
+        while($p = $query->fetch_assoc()) {
+            ?>
+            <!-- FILA IMAGEN / TARJETA -->
+            <tr class="row-card">
+                <td colspan="6">
+                    <div class="card-img">
+                        <img 
+                            class="img-card"
+                            src="<?= $p['img'] ?: $defaultImage ?>" 
+                            alt="Producto"
+                            data-id="<?= $p['id'] ?>"
+                            data-id_producto="<?= $p['id_producto'] ?>"
+                            data-producto="<?= htmlspecialchars($p['producto']) ?>"
+                            data-descripcion="<?= htmlspecialchars($p['descripcion']) ?>"
+                            data-cantidad="<?= htmlspecialchars($p['cantidad']) ?>"
+                            data-precio="<?= number_format($p['precio'],2) ?>"
+                            data-categoria="<?= htmlspecialchars($p['categoria']) ?>"
+                            data-codigo="<?= htmlspecialchars($p['codigo_barra']) ?>"
+                            data-stock="<?= htmlspecialchars($p['stock_inicial']) ?>"
+                            data-fecha="<?= htmlspecialchars($p['fecha_registro']) ?>"
+                        >
+                    </div>
+                </td>
+            </tr>
+
+            <!-- FILA DATOS -->
+            <tr data-id="<?= $p['id'] ?>">
+                <td><?= $p['id'] ?></td>
+                <td><?= htmlspecialchars($p['producto']) ?></td>
+                <td><?= htmlspecialchars($p['descripcion']) ?></td>
+                <td><?= $p['cantidad'] ?></td>
+                <td><?= number_format($p['precio'],2) ?></td>
+            </tr>
+
+            <!-- FILA ACCIONES -->
+            <tr class="action-row" data-id="<?= $p['id'] ?>">
+                <td colspan="6">
+                    <button class="btn btn-edit"
+                        data-id="<?= $p['id'] ?>"
+                        data-id_producto="<?= $p['id_producto'] ?>"
+                        data-producto="<?= htmlspecialchars($p['producto']) ?>"
+                        data-descripcion="<?= htmlspecialchars($p['descripcion']) ?>"
+                        data-cantidad="<?= $p['cantidad'] ?>"
+                        data-precio="<?= $p['precio'] ?>"
+                        data-categoria="<?= htmlspecialchars($p['categoria']) ?>"
+                        data-stock="<?= $p['stock_inicial'] ?>"
+                        data-codigo_barra="<?= htmlspecialchars($p['codigo_barra']) ?>"
+                    >✏ Editar</button>
+
+                    <button class="btn btn-delete" style="background:#c0392b;" data-id="<?= $p['id'] ?>">
+                        🗑 Borrar
+                    </button>
+                </td>
+            </tr>
+            <?php
+        }
+    } else {
+        echo "<tr><td colspan='6' style='text-align:center; padding:20px;'>No se encontraron productos</td></tr>";
+    }
+
     exit;
 }
 
+
+/* =====================================================
+   FUNCIÓN: ELIMINAR IMAGEN DE GOOGLE CLOUD STORAGE
+   ===================================================== */
+function eliminarImagenGCS($bucket, $urlImagen) {
+    if (empty($urlImagen)) return;
+
+    // Quitar parámetros ?v=
+    $urlLimpia = strtok($urlImagen, '?');
+
+    if (strpos($urlLimpia, 'storage.googleapis.com') === false) return;
+
+    $partes = parse_url($urlLimpia);
+    $path = ltrim($partes['path'], '/'); // negocioencontrol/negocio/productos/archivo.jpg
+
+    // Quitar nombre del bucket
+    $objectPath = preg_replace('#^negocioencontrol/#', '', $path);
+
+    $object = $bucket->object($objectPath);
+    if ($object->exists()) {
+        $object->delete();
+    }
+}
+
 /* =========================
-   ELIMINAR
+   ELIMINAR (AJAX)
    ========================= */
 if (!empty($_POST['eliminar'])) {
-
     $id = intval($_POST['id']);
 
+    // 1️⃣ Obtener imagen e id_producto
     $stmt = $conexion->prepare("
         SELECT p.imagen, b.id_producto
         FROM bodega b
@@ -82,24 +190,24 @@ if (!empty($_POST['eliminar'])) {
     $data = $res->fetch_assoc();
     $stmt->close();
 
+    // 2️⃣ Eliminar imagen de GCS (si existe)
     if ($data && !empty($data['imagen'])) {
-        $urlLimpia = strtok($data['imagen'], '?');
-        $partes = parse_url($urlLimpia);
-        $path = ltrim($partes['path'], '/');
-        $objectPath = preg_replace('#^'.$bucketName.'/#', '', $path);
-        $object = $bucket->object($objectPath);
-        if ($object->exists()) {
-            $object->delete();
-        }
+        eliminarImagenGCS($bucket, $data['imagen']);
     }
 
-    $stmt = $conexion->prepare("DELETE FROM bodega WHERE id=? AND negocio=?");
+    // 3️⃣ Eliminar registro de bodega
+    $stmt = $conexion->prepare("
+        DELETE FROM bodega WHERE id=? AND negocio=?
+    ");
     $stmt->bind_param("is", $id, $negocio);
     $stmt->execute();
     $stmt->close();
 
+    // 4️⃣ Eliminar producto
     if ($data) {
-        $stmt = $conexion->prepare("DELETE FROM productos WHERE id_producto=?");
+        $stmt = $conexion->prepare("
+            DELETE FROM productos WHERE id_producto=?
+        ");
         $stmt->bind_param("i", $data['id_producto']);
         $stmt->execute();
         $stmt->close();
@@ -112,23 +220,21 @@ if (!empty($_POST['eliminar'])) {
 /* =========================
    GUARDAR / EDITAR
    ========================= */
-
 $id           = intval($_POST['id'] ?? 0);
 $id_producto  = intval($_POST['id_producto'] ?? 0);
 $producto     = trim($_POST['producto'] ?? '');
 $codigo_barra = trim($_POST['codigo_barra'] ?? '');
 $descripcion  = $_POST['descripcion'] ?? '';
-$cantidad     = floatval($_POST['cantidad']);
-$precio       = floatval($_POST['precio']);
+$cantidad     = floatval($_POST['cantidad'] ?? 0);
+$precio       = floatval($_POST['precio'] ?? 0);
 $categoria    = $_POST['categoria'] ?? '';
-$stockInicial = floatval($_POST['stock_inicial']);
+$stockInicial = floatval($_POST['stock_inicial'] ?? 0);
 
 $conexion->begin_transaction();
 
 try {
-
+    // 1️⃣ Crear producto nuevo
     if ($id_producto == 0 && $producto !== '') {
-
         if (empty($codigo_barra)) {
             $codigo_barra = (string)time();
         }
@@ -137,61 +243,52 @@ try {
             INSERT INTO productos (codigo_barra, producto, precio, categoria, stock_inicial)
             VALUES (?, ?, ?, ?, ?)
         ");
-        $stmt->bind_param("sssdi", $codigo_barra, $producto, $precio, $categoria, $stockInicial);
+        $stmt->bind_param("ssdsd", $codigo_barra, $producto, $precio, $categoria, $stockInicial);
         $stmt->execute();
         $id_producto = $stmt->insert_id;
         $stmt->close();
     }
 
+    // 2️⃣ Editar producto existente
     if ($id_producto > 0) {
         $stmt = $conexion->prepare("
             UPDATE productos SET
             codigo_barra=?, producto=?, precio=?, categoria=?, stock_inicial=?
             WHERE id_producto=?
         ");
-        $stmt->bind_param("ssdssi", $codigo_barra, $producto, $precio, $categoria, $stockInicial, $id_producto);
+        $stmt->bind_param("ssdsdi", $codigo_barra, $producto, $precio, $categoria, $stockInicial, $id_producto);
         $stmt->execute();
         $stmt->close();
     }
 
-    /* ========= IMAGEN ========= */
-    if (isset($_FILES['imagen']) && is_uploaded_file($_FILES['imagen']['tmp_name'])) {
-
+    // 3️⃣ Subir imagen (solo si hay archivo)
+    if (
+        isset($_FILES['imagen']) &&
+        is_uploaded_file($_FILES['imagen']['tmp_name'])
+    ) {
         $fileName = "prod_$id_producto.jpg";
-        $objectPath = "$negocio/productos/$fileName";
-
-        $object = $bucket->object($objectPath);
-        if ($object->exists()) {
-            $object->delete();
-        }
 
         $bucket->upload(
             fopen($_FILES['imagen']['tmp_name'], 'r'),
-            [
-                'name' => $objectPath,
-                'metadata' => [
-                    'cacheControl' => 'no-store, no-cache, must-revalidate, max-age=0'
-                ]
-            ]
+            ['name' => "$negocio/productos/$fileName"]
         );
 
-        $imgUrl = "https://storage.googleapis.com/$bucketName/$objectPath?v=" . time();
-
-        $stmt = $conexion->prepare("UPDATE productos SET imagen=? WHERE id_producto=?");
-        $stmt->bind_param("si", $imgUrl, $id_producto);
-        $stmt->execute();
-        $stmt->close();
+        $imgUrl = "https://storage.googleapis.com/$bucketName/$negocio/productos/$fileName?v=" . time();
+        $conexion->query("
+            UPDATE productos 
+            SET imagen='$imgUrl'
+            WHERE id_producto=$id_producto
+        ");
     }
 
+    // 4️⃣ Insertar o actualizar bodega
     if ($id > 0) {
-
         $stmt = $conexion->prepare("
             UPDATE bodega SET
             descripcion=?, cantidad=?, precio=?, categoria=?, stock_inicial=?
             WHERE id=? AND negocio=?
         ");
-
-        $stmt->bind_param("sdddsis",
+        $stmt->bind_param("sddsdis",
             $descripcion,
             $cantidad,
             $precio,
@@ -200,16 +297,13 @@ try {
             $id,
             $negocio
         );
-
     } else {
-
         $stmt = $conexion->prepare("
             INSERT INTO bodega
             (negocio, id_producto, descripcion, cantidad, precio, categoria, stock_inicial, fecha_registro)
             VALUES (?,?,?,?,?,?,?,NOW())
         ");
-
-        $stmt->bind_param("sisddds",
+        $stmt->bind_param("sisddsd",
             $negocio,
             $id_producto,
             $descripcion,
@@ -224,18 +318,7 @@ try {
     $stmt->close();
     $conexion->commit();
 
-    $stmt = $conexion->prepare("SELECT imagen FROM productos WHERE id_producto=?");
-    $stmt->bind_param("i", $id_producto);
-    $stmt->execute();
-    $resImg = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-
-    echo json_encode([
-        'ok'=>true,
-        'msg'=>'Inventario guardado',
-        'img'=>$resImg['imagen'] ?? ''
-    ]);
-
+    echo json_encode(['ok'=>true,'msg'=>'Inventario guardado']);
 } catch (Exception $e) {
     $conexion->rollback();
     echo json_encode(['ok'=>false,'msg'=>'Error: '.$e->getMessage()]);

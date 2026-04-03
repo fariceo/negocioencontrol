@@ -3,8 +3,10 @@ session_start();
 include $_SERVER['DOCUMENT_ROOT']."/negocioencontrol/core/conexion.php";
 
 if (!isset($_SESSION['nombre_bd_negocio'])) {
-    header("Location: ../usuarios/login.php");
-    exit;
+    //header("Location: ../usuarios/login.php");
+    header("Location: https://elpollovolantuso.com/negocioencontrol/usuarios/login.php");
+exit;
+
 }
 
 // Conexión a la base de datos
@@ -22,100 +24,63 @@ $conexion = $db->negocio($_SESSION['nombre_bd_negocio']);
 <style>
 body {
     font-family: Arial, sans-serif;
-    margin:0; padding:0;
+    margin: 0;
+    padding: 0;
+    background: #f8fafc;
 }
 
-/* CONTENEDOR DEL MENÚ */
-#menuContainer {
-    background: #2c3e50;
-    padding: 10px;
-    position: relative;
-}
-
-/* BOTÓN HAMBURGUESA */
-#menuToggle {
-    background: transparent;
-    border: none;
-    color: white;
-    font-size: 28px;
-    cursor: pointer;
-    display: none;
-}
-
-/* LISTA DE MENÚ */
-#menuLinks {
-    list-style:none;
-    display:flex;
-    gap:10px;
-    padding:0; margin:0;
-    background:#2c3e50;
-    flex-wrap:wrap;
-}
-
-#menuLinks li a {
-    color:white;
-    text-decoration:none;
-    padding:10px 14px;
-    display:flex;
-    align-items:center;
-    gap:6px;
-    background:#34495e;
-    border-radius:6px;
-    transition:0.3s;
-}
-
-#menuLinks li a:hover {
-    background:#1abc9c;
-    transform:translateY(-2px);
-}
-
-/* VOLVER AL MENU */
+/* BOTÓN VOLVER */
 #btnVolverMenu {
-    display:none;
-    background:#1abc9c;
-    border:none;
-    padding:8px 12px;
-    margin-bottom:10px;
-    color:white;
-    font-size:16px;
-    border-radius:5px;
-    cursor:pointer;
+    display: none;
+    background: linear-gradient(135deg, #10b981, #14b8a6);
+    border: none;
+    padding: 10px 14px;
+    margin: 12px;
+    color: white;
+    font-size: 15px;
+    font-weight: bold;
+    border-radius: 12px;
+    cursor: pointer;
+    position: relative;
+    z-index: 2000;
+    box-shadow: 0 8px 20px rgba(16,185,129,0.25);
+    transition: all 0.25s ease;
 }
 
-/* RESPONSIVE */
-@media (max-width:768px) {
+#btnVolverMenu:hover {
+    transform: translateY(-1px);
+}
 
-    #menuToggle {
-        display:block;
+/* CONTENIDO */
+#contenido {
+    padding: 20px;
+    min-height: 500px;
+    background: #f8fafc;
+}
+
+/* MÓVIL */
+@media (max-width: 768px) {
+    #contenido {
+        display: none;
+        padding: 14px;
+        min-height: auto;
     }
 
-    #menuLinks {
-        display:none;
-        flex-direction:column;
-        width:100%;
-        background:#2c3e50;
-        padding:10px;
-        border-radius:8px;
+    #menuToggle {
+        display: block !important;
+        position: relative;
+        z-index: 3000;
     }
 
     #menuLinks.show {
-        display:flex;
+        display: flex !important;
     }
 
-    #menuLinks li a {
-        width:100%;
-        padding:12px;
-        font-size:16px;
+    #btnVolverMenu {
+        width: calc(100% - 24px);
+        margin: 12px;
+        text-align: center;
     }
-
-    /* Contenido oculto en móvil */
-    #contenido {
-        display:none;
-    }
-}
-
-#contenido {
-    padding:20px;
 }
 </style>
 </head>
@@ -124,104 +89,183 @@ body {
 <?php include "layout/marquesina.php"; ?>
 <?php include "layout/menu.php"; ?>
 
-<button id="btnVolverMenu">⟵ Volver al menú</button>
+<button id="btnVolverMenu" type="button">⟵ Volver al menú</button>
 
-<div id="contenido" style="height:450px; overflow-y:auto;"></div>
+<div id="contenido" style="overflow-y:auto;"></div>
 
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-
+document.addEventListener("DOMContentLoaded", function () {
     const menuContainer = document.getElementById("menuContainer");
-    const menuLinks = document.querySelectorAll('#menuLinks a');
-    const contenido = document.getElementById('contenido');
-    const btnVolver = document.getElementById('btnVolverMenu');
-    const menuToggle = document.getElementById('menuToggle');
-    const menuList = document.getElementById('menuLinks');
+    const contenido = document.getElementById("contenido");
+    const btnVolver = document.getElementById("btnVolverMenu");
+    const menuToggle = document.getElementById("menuToggle");
+    const menuList = document.getElementById("menuLinks");
 
     function esMovil() {
         return window.innerWidth <= 768;
     }
 
-    /* Toggle del menú hamburguesa */
-    if (menuToggle) {
-        menuToggle.addEventListener("click", function() {
-            menuList.classList.toggle("show");
-        });
+    function obtenerLinksMenu() {
+        return document.querySelectorAll("#menuLinks a");
     }
 
-    /* Acción al seleccionar módulo */
-    menuLinks.forEach(a => {
-        a.addEventListener('click', function() {
-
-            if (esMovil()) {
-                menuContainer.style.display = "none";
-                btnVolver.style.display = "block";
-                contenido.style.display = "block";
-                menuList.classList.remove("show");
-            }
-        });
-    });
-
-    /* Botón para volver al menú */
- btnVolver.addEventListener("click", function() {
-    if (esMovil()) {
+    function mostrarMenu() {
+        menuContainer.style.display = "block";
         contenido.style.display = "none";
         btnVolver.style.display = "none";
-        menuContainer.style.display = "block";
 
-        // 👇 FORZAR menú hamburguesa abierto
-        menuList.classList.add("show");
+        if (menuToggle) {
+            menuToggle.style.display = "block";
+        }
+
+        if (menuList) {
+            menuList.classList.add("show");
+        }
     }
-});
 
+    function mostrarContenido() {
+        menuContainer.style.display = "none";
+        contenido.style.display = "block";
+        btnVolver.style.display = "block";
 
-    menuList.classList.add("show");
+        if (menuList) {
+            menuList.classList.remove("show");
+        }
+    }
 
-    /* FUNCIÓN PARA CARGAR MÓDULOS */
-    function cargarModulo(ruta) {
-        fetch(ruta)
-        .then(res => res.text())
-        .then(html => {
-            contenido.innerHTML = html;
-            contenido.scrollTop = 0;
+    function modoEscritorio() {
+        menuContainer.style.display = "block";
+        contenido.style.display = "block";
+        btnVolver.style.display = "none";
 
-            const scripts = contenido.querySelectorAll('script');
-            scripts.forEach(s => {
-                const newScript = document.createElement('script');
-                if(s.src) newScript.src = s.src;
-                else newScript.textContent = `(function(){ ${s.textContent} })();`;
-                document.body.appendChild(newScript);
-                s.remove();
-            });
-        })
-        .catch(err => {
-            contenido.innerHTML =
-                "<p style='color:red; text-align:center;'>No se pudo cargar el módulo: " + err.message + "</p>";
+        if (menuToggle) {
+            menuToggle.style.display = "none";
+        }
+
+        if (menuList) {
+            menuList.classList.remove("show");
+        }
+    }
+
+    function ejecutarScriptsDentroDeContenido() {
+        const scripts = contenido.querySelectorAll("script");
+
+        scripts.forEach(scriptOriginal => {
+            const nuevoScript = document.createElement("script");
+
+            if (scriptOriginal.src) {
+                nuevoScript.src = scriptOriginal.src;
+            } else {
+                nuevoScript.textContent = scriptOriginal.textContent;
+            }
+
+            document.body.appendChild(nuevoScript);
+            scriptOriginal.remove();
         });
     }
 
-    /* Cargar el primer módulo en escritorio */
-    if (!esMovil()) {
+    function cargarModulo(ruta) {
+        fetch(ruta)
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error("Error al cargar el módulo");
+                }
+                return res.text();
+            })
+            .then(html => {
+                contenido.innerHTML = html;
+                contenido.scrollTop = 0;
+
+                ejecutarScriptsDentroDeContenido();
+
+                if (esMovil()) {
+                    mostrarContenido();
+                }
+            })
+            .catch(err => {
+                contenido.innerHTML = `
+                    <p style="color:red; text-align:center; font-weight:bold;">
+                        No se pudo cargar el módulo: ${err.message}
+                    </p>
+                `;
+
+                if (esMovil()) {
+                    mostrarContenido();
+                }
+            });
+    }
+
+    function activarEventosMenu() {
+        const links = obtenerLinksMenu();
+
+        links.forEach(link => {
+            link.addEventListener("click", function (e) {
+                e.preventDefault();
+
+                const ruta = this.dataset.ruta;
+                if (ruta) {
+                    cargarModulo(ruta);
+                }
+            });
+        });
+    }
+
+    /* BOTÓN HAMBURGUESA */
+    if (menuToggle) {
+        menuToggle.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (menuList) {
+                menuList.classList.toggle("show");
+            }
+        });
+    }
+
+    /* BOTÓN VOLVER */
+    if (btnVolver) {
+        btnVolver.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (esMovil()) {
+                mostrarMenu();
+            } else {
+                modoEscritorio();
+            }
+        });
+    }
+
+    /* ACTIVAR LINKS */
+    activarEventosMenu();
+
+    /* ESTADO INICIAL */
+    if (esMovil()) {
+        mostrarMenu();
+    } else {
+        modoEscritorio();
         cargarModulo('/negocioencontrol/negocios/modulos/productos.php');
     }
 
-    /* Click de carga */
-    menuLinks.forEach(a => {
-        a.addEventListener('click', function(e) {
-            e.preventDefault();
-            cargarModulo(this.dataset.ruta);
-        });
+    /* CAMBIO DE TAMAÑO */
+    window.addEventListener("resize", function () {
+        if (esMovil()) {
+            if (contenido.innerHTML.trim() !== "") {
+                mostrarContenido();
+            } else {
+                mostrarMenu();
+            }
+        } else {
+            modoEscritorio();
+        }
     });
-
 });
-
-
 </script>
 
 <form action="/negocioencontrol/usuarios/logout.php" method="post"
-      style="position:fixed; bottom:20px; left:20px;">
+      style="position:fixed; bottom:20px; left:20px; z-index:9999;">
     <button type="submit"
-            style="padding:8px 12px; background:#dc3545; color:#fff; border:none; border-radius:5px; cursor:pointer;">
+            style="padding:10px 14px; background:#dc3545; color:#fff; border:none; border-radius:10px; cursor:pointer; font-weight:bold;">
         Cerrar sesión
     </button>
 </form>

@@ -14,13 +14,26 @@ $conexion = $db->negocio($_SESSION['nombre_bd_negocio']);
 $usuario = $_SESSION['usuario'] ?? 'default_user';
 
 // Consulta productos con stock
-$query = $conexion->query("
+/*$query = $conexion->query("
     SELECT p.id_producto, p.producto, p.precio, p.imagen, COALESCE(b.cantidad,0) AS stock_actual
     FROM productos p
     LEFT JOIN bodega b ON p.id_producto = b.id_producto
     WHERE COALESCE(b.cantidad,0) > 0
     ORDER BY p.producto ASC
+");*/
+$query = $conexion->query("
+    SELECT p.id_producto, p.producto, p.precio, p.imagen, COALESCE(b.cantidad,0) AS stock_actual, p.categoria
+    FROM productos p
+    LEFT JOIN bodega b ON p.id_producto = b.id_producto
+    WHERE COALESCE(b.cantidad,0) > 0
+    ORDER BY p.producto ASC
 ");
+
+$categoriasQuery = $conexion->query("SELECT DISTINCT categoria FROM productos WHERE categoria IS NOT NULL");
+$categorias = [];
+while($cat = $categoriasQuery->fetch_assoc()){
+    $categorias[] = $cat['categoria'];
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -70,7 +83,7 @@ body {
     border-radius: 18px;
     box-shadow: 0 10px 25px rgba(15,23,42,.08);
     padding: 15px;
-     min-height: 360px; /* NUEVO */
+     min-height: 520px; /* NUEVO */
      justify-content: space-between; /* NUEVO */
      overflow: hidden; /* NUEVO */
     width: 220px;
@@ -88,13 +101,11 @@ body {
 }
 
 .producto-imagen {
-    width: 100%;
-    height: 170px;
+    width: 100% !important;
+    height: 400px !important; /* más grande */
     object-fit: cover;
     border-radius: 14px;
     margin-bottom: 12px;
-    display: block;
-    transition: transform .25s ease;
 }
 
 .producto-nombre {
@@ -453,8 +464,8 @@ button.agregar:active {
     border-radius: 18px;
     box-shadow: 0 10px 25px rgba(15,23,42,.08);
     padding: 16px;
-    width: 220px;
-    min-height: 360px;
+    width: 90%;
+    min-height: 440px;
     text-align: center;
     display: flex;
     flex-direction: column;
@@ -465,8 +476,9 @@ button.agregar:active {
     overflow: hidden;
 }
 
-    .producto-imagen {
-        height: 130px;
+   .producto-imagen {
+        
+        height: 450px; /* altura proporcional */
     }
 
     #carritoContenedor {
@@ -596,6 +608,12 @@ button.agregar:active {
 }
 
 @media (max-width: 768px) {
+    .producto-card {
+        width: 95%;
+    }
+    .producto-imagen {
+        height: 120px;
+    }
     .h3-titulo {
         font-size: 1.6rem;
         margin: 20px 0 8px;
@@ -616,11 +634,20 @@ button.agregar:active {
     <i class="fas fa-search" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); color:#888;"></i>
 </div>
 
+<div style="text-align:center; margin: 10px 0;">
+    <label for="filtroCategoria">Categoría: </label>
+    <select id="filtroCategoria">
+        <option value="todas">Todas</option>
+        <?php foreach($categorias as $cat): ?>
+            <option value="<?= htmlspecialchars($cat) ?>"><?= htmlspecialchars($cat) ?></option>
+        <?php endforeach; ?>
+    </select>
+</div>
 <!-- Productos -->
 <div class="container" id="productosContainer">
 <?php while($p = $query->fetch_assoc()): ?>
-<div class="producto-card">
-    <?php $imgSrc = !empty($p['imagen']) ? $p['imagen'] : "/negocioencontrol/negocios/modulos/assets/default.png"; ?>
+<div class="producto-card" data-categoria="<?= htmlspecialchars($p['categoria']) ?>">
+        <?php $imgSrc = !empty($p['imagen']) ? $p['imagen'] : "/negocioencontrol/negocios/modulos/assets/default.png"; ?>
     <img src="<?= htmlspecialchars($imgSrc) ?>" alt="<?= htmlspecialchars($p['producto']) ?>" class="producto-imagen">
     <div class="producto-nombre"><?= htmlspecialchars($p['producto']) ?></div>
     <div class="producto-precio">$<?= number_format($p['precio'],2) ?></div>
@@ -916,5 +943,26 @@ Ambiente: pruebas`
     actualizarCarrito();
 })();
 </script>
+
+
+<script>
+
+    const filtroCategoria = document.getElementById('filtroCategoria');
+const productosContainer = document.getElementById('productosContainer');
+
+filtroCategoria.addEventListener('change', () => {
+    const categoria = filtroCategoria.value;
+    const cards = productosContainer.querySelectorAll('.producto-card');
+    cards.forEach(card => {
+        const catCard = card.dataset.categoria;
+        if(categoria === 'todas' || catCard === categoria){
+            card.style.display = 'flex';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+});
+</script>
+
 </body>
 </html>

@@ -15,7 +15,7 @@ $usuario = $_SESSION['usuario'] ?? 'default_user';
 
 // Consulta productos con stock
 $query = $conexion->query("
-    SELECT p.id_producto, p.producto, p.precio, p.imagen, COALESCE(b.cantidad,0) AS stock_actual, p.categoria
+    SELECT p.id_producto, p.producto, p.precio, p.imagen, b.descripcion, COALESCE(b.cantidad,0) AS stock_actual, p.categoria
     FROM productos p
     LEFT JOIN bodega b ON p.id_producto = b.id_producto
     WHERE COALESCE(b.cantidad,0) > 0
@@ -81,10 +81,10 @@ while($cat = $categoriasQuery->fetch_assoc()){
 
 .container-productos {
     display: flex;
-    gap: 20px;
+    gap: 12px;
     justify-content: center;
     flex-wrap: wrap;
-    padding: 10px 15px 100px;
+    padding: 10px 12px 100px;
     align-items: stretch;
 }
 
@@ -93,7 +93,7 @@ while($cat = $categoriasQuery->fetch_assoc()){
     border-radius: 18px;
     box-shadow: 0 10px 25px rgba(15,23,42,.08);
     padding: 15px;
-    min-height: 520px;
+    min-height: 320px;
     justify-content: space-between;
     overflow: hidden;
     width: 220px;
@@ -112,12 +112,12 @@ while($cat = $categoriasQuery->fetch_assoc()){
 
 .producto-imagen {
     width: 100%;
-    height: 400px;
+    height: 300px;
     object-fit: cover;
     border-radius: 14px;
     margin-bottom: 12px;
+    display: block;
 }
-
 .producto-nombre {
     font-weight: 700;
     font-size: 1.05rem;
@@ -131,6 +131,24 @@ while($cat = $categoriasQuery->fetch_assoc()){
     margin-bottom: 8px;
     word-break: break-word;
 }
+
+.producto-detalle {
+    font-size: 0.92rem;
+    color: #475569;
+    line-height: 1.45;
+    min-height: 65px;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    text-align: center;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
 
 .producto-precio {
     color: #059669;
@@ -411,8 +429,8 @@ button.agregar:active {
     background: rgba(255,255,255,0.95);
     border-radius: 18px;
     box-shadow: 0 8px 18px rgba(15,23,42,.05);
-    padding: 12px;
-    width: 240px;
+    padding: 14px;
+    width: 280px;
     text-align: center;
     transition: all .25s ease;
     cursor: pointer;
@@ -427,6 +445,27 @@ button.agregar:active {
     border-radius: 10px;
 }
 
+.categoria-imagenes {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: nowrap;
+}
+
+.img-categoria {
+    width: 82px;
+    height: 82px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 2px solid #f1f5f9;
+    box-shadow: 0 4px 10px rgba(0,0,0,.06);
+    transition: transform .2s ease;
+}
+
+.categoria-card:hover .img-categoria {
+    transform: scale(1.04);
+}
+
 #volverCategorias {
     display: inline-block;
     margin: 10px 15px;
@@ -439,6 +478,19 @@ button.agregar:active {
     font-weight: bold;
 }
 
+
+
+.categoria-nombre {
+    margin-top: 8px;
+    font-weight: 700;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #0f172a;
+    line-height: 1.2;
+    word-break: break-word;
+}
+
+
 @keyframes modalFadeIn {
     from {
         opacity: 0;
@@ -450,15 +502,33 @@ button.agregar:active {
     }
 }
 
+@media (min-width: 769px) {
+    .categoria-card {
+        width: 300px;
+        padding: 16px;
+    }
+
+    .img-categoria {
+        width: 100px;
+        height: 100px;
+    }
+
+    .categoria-nombre {
+        font-size: 1.05rem;
+    }
+}
+
 @media (max-width: 768px) {
     .producto-card {
         width: 95%;
-        min-height: 440px;
+        min-height: auto;
     }
 
     .producto-imagen {
-        height: 450px;
-    }
+    width: 100%;
+    height: 300px;
+    object-fit: cover;
+}
 
     #carritoContenedor {
         width: 96%;
@@ -468,7 +538,34 @@ button.agregar:active {
     .h3-titulo {
         font-size: 1.6rem;
     }
+
+    .categoria-card {
+        width: calc(33.333% - 10px);
+        min-width: unset;
+        max-width: unset;
+        padding: 8px;
+        border-radius: 14px;
+    }
+
+    .categoria-imagenes {
+        gap: 3px !important;
+        justify-content: center;
+    }
+
+    .img-categoria {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        object-fit: cover;
+    }
+
+    .categoria-nombre {
+        font-size: 0.8rem;
+        margin-top: 6px;
+        line-height: 1.2;
+    }
 }
+
 </style>
 
 <div class="modulo-productos-wrapper">
@@ -483,23 +580,26 @@ button.agregar:active {
     <div class="container-productos" id="categoriasContainer">
         <?php foreach($categorias as $cat): ?>
             <?php
-            $productosCat = $conexion->query("
-                SELECT imagen 
-                FROM productos 
-                WHERE categoria = '".$conexion->real_escape_string($cat)."'
-                LIMIT 3
-            ");
-            ?>
+$productosCat = $conexion->query("
+    SELECT imagen 
+    FROM productos 
+    WHERE categoria = '".$conexion->real_escape_string($cat)."'
+      AND imagen IS NOT NULL
+      AND imagen != ''
+    ORDER BY RAND()
+    LIMIT 3
+");
+?>
             <div class="categoria-card" data-categoria="<?= htmlspecialchars($cat) ?>">
-                <div class="categoria-imagenes" style="display:flex; gap:5px; justify-content:center;">
+                <div class="categoria-imagenes">
                     <?php while($pimg = $productosCat->fetch_assoc()): ?>
                         <?php $imgSrc = !empty($pimg['imagen']) ? $pimg['imagen'] : "/negocioencontrol/negocios/modulos/assets/default.png"; ?>
-                        <img src="<?= htmlspecialchars($imgSrc) ?>" style="width:70px; height:70px; object-fit:cover;">
+                        <img src="<?= htmlspecialchars($imgSrc) ?>" class="img-categoria">
                     <?php endwhile; ?>
                 </div>
-                <div class="categoria-nombre" style="margin-top:8px; font-weight:bold; text-align:center;">
-                    <?= htmlspecialchars($cat) ?>
-                </div>
+                <div class="categoria-nombre">
+    <?= htmlspecialchars($cat) ?>
+</div>
             </div>
         <?php endforeach; ?>
     </div>
@@ -512,8 +612,11 @@ button.agregar:active {
             <?php foreach($productos as $p): ?>
                 <div class="producto-card producto-item" data-categoria="<?= htmlspecialchars($p['categoria']) ?>" style="display:none;">
                     <?php $imgSrc = !empty($p['imagen']) ? $p['imagen'] : "/negocioencontrol/negocios/modulos/assets/default.png"; ?>
-                    <img src="<?= htmlspecialchars($imgSrc) ?>" alt="<?= htmlspecialchars($p['producto']) ?>" class="producto-imagen">
+                    <img src="<?= htmlspecialchars($imgSrc) ?>" class="producto-imagen">                
                     <div class="producto-nombre"><?= htmlspecialchars($p['producto']) ?></div>
+                    <div class="producto-detalle">
+                        <?= htmlspecialchars($p['descripcion'] ?? 'Sin descripción disponible') ?>
+                    </div>
                     <div class="producto-precio">$<?= number_format($p['precio'],2) ?></div>
                     <input type="number" class="cantidad" value="1" min="1">
                     <button class="agregar"

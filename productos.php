@@ -491,6 +491,50 @@ button.agregar:active {
 }
 
 
+.metodo-pago-group {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 14px 0 10px;
+}
+
+.metodo-pago-opcion {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 10px;
+    border: 2px solid #e2e8f0;
+    border-radius: 14px;
+    background: #f8fafc;
+    cursor: pointer;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+    transition: all .2s ease;
+    text-align: center;
+    min-height: 54px;
+    margin-bottom: 0 !important;
+}
+
+.metodo-pago-opcion:hover {
+    border-color: #38bdf8;
+    background: #eff6ff;
+    transform: translateY(-1px);
+}
+
+.metodo-pago-opcion input[type="radio"] {
+    width: 18px !important;
+    height: 18px !important;
+    margin: 0 !important;
+    accent-color: #2563eb;
+    flex-shrink: 0;
+}
+
+.metodo-pago-opcion span {
+    display: inline-block;
+    line-height: 1.2;
+}
+
 @keyframes modalFadeIn {
     from {
         opacity: 0;
@@ -564,6 +608,17 @@ button.agregar:active {
         margin-top: 6px;
         line-height: 1.2;
     }
+
+    .metodo-pago-group {
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.metodo-pago-opcion {
+    justify-content: flex-start;
+    padding: 14px 16px;
+    font-size: 0.95rem;
+}
 }
 
 </style>
@@ -668,13 +723,22 @@ $productosCat = $conexion->query("
 
             <label>Correo (opcional):</label>
             <input type="email" id="correoCliente" placeholder="cliente@correo.com">
+<div class="metodo-pago-group">
+    <label class="metodo-pago-opcion">
+        <input type="radio" name="metodoPago" value="efectivo" checked>
+        <span>💵 Efectivo</span>
+    </label>
 
-            <div style="margin:8px 0;">
-                <label><input type="radio" name="metodoPago" value="efectivo" checked> Efectivo</label>
-                <label style="margin-left:15px;"><input type="radio" name="metodoPago" value="transferencia"> Transferencia</label>
-                <label style="margin-left:15px;"><input type="radio" name="metodoPago" value="credito"> Crédito</label>
-            </div>
+    <label class="metodo-pago-opcion">
+        <input type="radio" name="metodoPago" value="transferencia">
+        <span>🏦 Transferencia</span>
+    </label>
 
+    <label class="metodo-pago-opcion">
+        <input type="radio" name="metodoPago" value="credito">
+        <span>🧾 Crédito</span>
+    </label>
+</div>
             <button id="btnCobrar">💰 Cobrar</button>
         </div>
     </div>
